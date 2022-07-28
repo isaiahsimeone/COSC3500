@@ -7,19 +7,19 @@
 
 class Grid {
     public:
-        Grid();
-        Grid(int,int);
-        ~Grid();
-        char get_cell(int, int);
-        void load_pattern_from_file(std::string);
-        int get_width();
-        int get_height();
-        void print();
+        char    get_cell(int, int);
+        void    load_pattern_from_file(std::string);
+        int     get_width();
+        int     get_height();
+        void    print();                
+                Grid();
+                Grid(int, int);
+                ~Grid();
     private:
-        int width;
-        int height;
-        char** grid;
-        bool loaded;
+        int     width;
+        int     height;
+        char**  grid;
+        bool    loaded;
 };
 
 #endif /*__GRID_H_*/
