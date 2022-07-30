@@ -4,22 +4,25 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <stdlib.h>
 
 class Grid {
     public:
-        char    get_cell(int, int);
-        void    load_pattern_from_file(std::string);
-        int     get_width();
-        int     get_height();
-        void    print();                
-                Grid();
-                Grid(int, int);
-                ~Grid();
+        std::pair<int,int>  get_random_coords();
+        char                get_cell(int, int);
+        void                randomise(unsigned int);
+        int                 get_width();
+        int                 get_height();
+        void                print();
+        int                 calculate_energy(int, int);
+                            Grid(int, int);
+                            ~Grid();
     private:
-        int     width;
-        int     height;
-        char**  grid;
-        bool    loaded;
+        void                allocate();
+        int                 width;
+        int                 height;
+        char**              grid;
+        bool                allocated;
 };
 
 #endif /*__GRID_H_*/
