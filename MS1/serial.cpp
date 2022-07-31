@@ -163,7 +163,7 @@ void write_grid_to_bitmap(Grid* grid, string out_file_name) {
 void usage(char* prog_name) {
     cerr << prog_name << " pattern_file [--[w]idth grid_width] " 
             << "[--[h]eight grid_height] [--[r]efresh-rate <hz>]" 
-            << " [--[g]raphical] [--[i]terations n]" << endl;
+            << " [--[g]raphical] [--[i]terations n] [--[s]eed] [--[t]emperature]" << endl;
     exit(1);
 }
 
