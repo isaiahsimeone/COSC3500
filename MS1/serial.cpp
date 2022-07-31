@@ -14,6 +14,7 @@ int main(int argc, char** argv) {
     float temperature = 1.5;
     unsigned int seed = 0;
     bool graphical = false;
+    string output_dir_name = "output_img/";
 
     /* Parse arguments */
     char opt;
@@ -41,6 +42,9 @@ int main(int argc, char** argv) {
             case 'g':
                 graphical = true;
                 break;
+            case 'o':
+                output_dir_name = optarg;
+                break;
             case '?': 
                 /* FALLTHROUGH */
             default:
@@ -52,17 +56,20 @@ int main(int argc, char** argv) {
     if (optind < argc)
         cerr << "Ignoring " << argc - optind << " extra argument(s)" << endl;
 
-    cout << "Width:      " << width << "px\n"
-         << "Height:     " << height << "px\n"
-         << "Refresh:    " << draw_rate << " iterations between each image\n"
-         << "Iterations: " << iterations << "\n"
-         << "Seed:       " << seed << "\n"
-         << "Temperature:" << temperature << "\n";
+    cout << "Width:       " << width << "px\n"
+         << "Height:      " << height << "px\n"
+         << "Refresh:     " << draw_rate << " iterations between each image\n"
+         << "Iterations:  " << iterations << "\n"
+         << "Seed:        " << seed << "\n"
+         << "Temperature: " << temperature << "\n"
+         << "Output dir:  " << output_dir_name << "\n";
 
     /* Calculate how much space this will take */
     if (graphical) {
         long required_size = (BITMAP_HEADER_SZ + 3 * width * height) * (iterations / draw_rate);
-        cout << "This simulation will consume " << required_size / BYTES_PER_MEGABYTE << "MB of disk space with the specified parameters" << endl;
+        cout << "This simulation will consume " 
+            << required_size / BYTES_PER_MEGABYTE << "MB of disk space and create "
+            << iterations/draw_rate << " images with the specified parameters" << endl;
     }
     cout << endl;
 
@@ -71,6 +78,15 @@ int main(int argc, char** argv) {
 
     //grid->print();
     cout << "Initialised" << endl;
+
+    /* Create output folder if it doesn't exist */
+    if (graphical) {
+        mkdir(output_dir_name.c_str(), 0777);
+    }
+
+    /* Write first image */
+    if (graphical)
+        write_grid_to_bitmap(grid, (output_dir_name + "/outfile_0.bmp"));
 
     /* Initialise timer */
     _time_point start, end;
@@ -85,7 +101,7 @@ int main(int argc, char** argv) {
             start = _clock::now();
 
             if (graphical)
-                write_grid_to_bitmap(grid, ("output_img/outfile_" + to_string((int)(i/draw_rate)) + ".bmp"));
+                write_grid_to_bitmap(grid, (output_dir_name + "/outfile_" + to_string((int)(i/draw_rate)) + ".bmp"));
         }
         //usleep(1000 * 1);
     }

@@ -8,6 +8,8 @@
 #include <getopt.h>
 #include <unistd.h>
 #include <assert.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #define BITMAP_HEADER_SZ    54
 #define BYTES_PER_MEGABYTE  1000000
@@ -18,7 +20,7 @@ typedef std::chrono::high_resolution_clock                          _clock;
 extern char* optarg;
 extern int optind, opterr, optopt;
 
-const char* const short_opts = "gw:h:r:i:s:t:";
+const char* const short_opts = "gw:h:r:i:s:t:o:";
 const option long_opts[] = {
     {"width", required_argument, nullptr, 'w'},
     {"height", required_argument, nullptr, 'h'},
@@ -26,7 +28,8 @@ const option long_opts[] = {
     {"graphical", no_argument, nullptr, 'g'},
     {"iterations", required_argument, nullptr, 'i'},
     {"seed", required_argument, nullptr, 's'},
-    {"temperature", required_argument, nullptr, 't'}
+    {"temperature", required_argument, nullptr, 't'},
+    {"output", required_argument, nullptr, 'o'}
 };
 
 /* Prototypes */
