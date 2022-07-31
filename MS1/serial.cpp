@@ -52,7 +52,14 @@ int main(int argc, char** argv) {
     if (optind < argc)
         cerr << "Ignoring " << argc - optind << " extra argument(s)" << endl;
 
-    cout << "w: " << width << "\nh: " << height << "\nr: " << refresh_rate << "\ng: " << graphical << "\niterations: " << iterations << "\nseed: " << seed << "\ntemperature: " << temperature << endl;
+    cout << "Width:      " << width << "px\n"
+         << "Height:     " << height << "px\n"
+         << "Refresh:    " << refresh_rate << " iterations between each image\n"
+         << "Iterations: " << iterations << "\n"
+         << "Seed:       " << seed << "\n"
+         << "Temperature:" << temperature << "\n" << endl;
+
+   // cout << "w: " << width << "\nh: " << height << "\nr: " << refresh_rate << "\ng: " << graphical << "\niterations: " << iterations << "\nseed: " << seed << "\ntemperature: " << temperature << endl;
 
     
     Grid* grid = new Grid(width, height, temperature);
@@ -60,16 +67,24 @@ int main(int argc, char** argv) {
 
     //grid->print();
 
+    /* Initialise timer */
+    
+    auto t0 = std::chrono::high_resolution_clock::now();
+
     for (long i = 1; i <= iterations ;i++) {
         monte_carlo(grid);
         if (i % refresh_rate == 0) {
-            cout << "\r" << static_cast<long double>(i) / ( static_cast<long double>(iterations)) * 100 << "\% complete    ";
+            cout << "\r" << static_cast<long double>(i) / ( static_cast<long double>(iterations)) * 100 << "% complete    ";
             fflush(stdout);
             write_grid_to_bitmap(grid, ("output_img/outfile_" + to_string((int)(i/refresh_rate)) + ".bmp"));
         }
         //usleep(1000 * 1);
     }
-    cout << "Done. took x seconds" << endl;
+
+    auto t1 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> span = std::chrono::duration_cast<std::chrono::duration<double>>(t1 - t0);
+
+    cout << "\n[*] Done. Took " << span.count() << " seconds" << endl;
 
 }
 
