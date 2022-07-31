@@ -9,8 +9,9 @@ using namespace std;
 int main(int argc, char** argv) {
     int width = 100;
     int height = 100;
-    int refresh_rate = 5; // draw image every 5 iterations
-    int iterations = 1000;
+    long refresh_rate = 5; // draw image every 5 iterations
+    long iterations = 1000;
+    float temperature = 1.5;
     unsigned int seed = 0;
     bool graphical = false;
 
@@ -26,12 +27,17 @@ int main(int argc, char** argv) {
                 height = stoi(optarg);
                 break;
             case 'r':
-                refresh_rate = stoi(optarg);
+                refresh_rate = stol(optarg);
                 break;
             case 'i':
-                iterations = stoi(optarg);
+                iterations = stol(optarg);
+                break;
             case 's':
-                seed = stoi(optarg);    
+                seed = stoi(optarg);
+                break;    
+            case 't':
+                temperature = stof(optarg);
+                break;
             case 'g':
                 graphical = true;
                 break;
@@ -46,30 +52,49 @@ int main(int argc, char** argv) {
     if (optind < argc)
         cerr << "Ignoring " << argc - optind << " extra argument(s)" << endl;
 
-    cout << "w: " << width << "\nh: " << height << "\nr: " << refresh_rate << "\ng: " << graphical << "\niterations: " << iterations << "\nseed: " << seed << endl;
-
+    cout << "w: " << width << "\nh: " << height << "\nr: " << refresh_rate << "\ng: " << graphical << "\niterations: " << iterations << "\nseed: " << seed << "\ntemperature: " << temperature << endl;
 
     
-    Grid* grid = new Grid(width, height);
+    Grid* grid = new Grid(width, height, temperature);
     grid->randomise(seed);
 
-    grid->print();
+    //grid->print();
 
-    for (int i = 1; i <= iterations ;i++) {
-        //conway(grid);
+    for (long i = 1; i <= iterations ;i++) {
+        monte_carlo(grid);
         if (i % refresh_rate == 0) {
-            cout << "write to : " << to_string((int)(i/refresh_rate)) << endl;
+            cout << "\r" << static_cast<long double>(i) / ( static_cast<long double>(iterations)) * 100 << "\% complete    ";
+            fflush(stdout);
             write_grid_to_bitmap(grid, ("output_img/outfile_" + to_string((int)(i/refresh_rate)) + ".bmp"));
         }
-        usleep(1000 * 100);
+        //usleep(1000 * 1);
+    }
+    cout << "Done. took x seconds" << endl;
+
+}
+
+void monte_carlo(Grid* grid) {
+    /* Randomly pick a position (i, j) */
+    pair<int, int> point = grid->get_random_coords();
+    int i = point.first;
+    int j = point.second;
+
+    int energy = grid->calculate_energy(i, j);
+    /* If E > 0, switch the spin */
+    if (energy > 0) {
+        grid->switch_cell(i, j);
+    /* If E < 0, pick r E [0, 1). If r < e^(2E/T), switch */
+    } else if (energy < 0) {
+        float r = static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 0.99999));
+        if (r < calculate_exp_ke_t(energy, grid->get_temperature()))
+            grid->switch_cell(i, j);
     }
 
 }
 
-void conway(Grid* grid) {
-   
+float calculate_exp_ke_t(int energy, float temperature) {
+    return exp(2*energy / temperature);
 }
-
 
 /*
  * Write the specified grid to a bitmap image file named 'out_file_name'
@@ -83,8 +108,6 @@ void write_grid_to_bitmap(Grid* grid, string out_file_name) {
 
     int h = grid->get_height();
     int w = grid->get_width();
-
-    cout << "create image" << endl;
 
     FILE* out_file = fopen(out_file_name.c_str(), "wb");
     int filesize = BITMAP_HEADER_SZ + 3 * w * h;

@@ -9,19 +9,23 @@
 class Grid {
     public:
         std::pair<int,int>  get_random_coords();
-        char                get_cell(int, int);
+        int                 get_cell(int, int);
         void                randomise(unsigned int);
         int                 get_width();
         int                 get_height();
         void                print();
         int                 calculate_energy(int, int);
-                            Grid(int, int);
+        void                set_cell(int, int, int);
+        void                switch_cell(int, int);
+        float               get_temperature();
+                            Grid(int, int, float);
                             ~Grid();
     private:
         void                allocate();
         int                 width;
         int                 height;
-        char**              grid;
+        int**               grid;
+        float               temperature;
         bool                allocated;
 };
 

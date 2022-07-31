@@ -1,9 +1,10 @@
 #include "grid.hpp"
 #include "serial.hpp"
 
-Grid::Grid(int width, int height) {
+Grid::Grid(int width, int height, float temperature) {
     this->width = width;
     this->height = height;
+    this->temperature = temperature;
     this->allocated = false;
 }
 
@@ -16,7 +17,7 @@ Grid::~Grid() {
     delete[] grid;
 }
 
-char Grid::get_cell(int x, int y) {
+int Grid::get_cell(int x, int y) {
     if (y >= height || y < 0)
         return 0;
     if (x >= width || x < 0)
@@ -24,10 +25,24 @@ char Grid::get_cell(int x, int y) {
     return grid[y][x];
 }
 
+void Grid::set_cell(int x, int y, int val) {
+    assert(x >= 0 && x < width);
+    assert(y >= 0 && y < height);
+
+    grid[y][x] = val;
+}
+
+void Grid::switch_cell(int x, int y) {
+    assert(x >= 0 && x < width);
+    assert(y >= 0 && y < height);
+
+    grid[y][x] *= -1;
+}
+
 void Grid::allocate() {
-    grid = new char*[height]();
+    grid = new int*[height]();
     for (int i = 0; i < height; i++)
-        grid[i] = new char[width]();
+        grid[i] = new int[width]();
     allocated = true;
 }
 
@@ -78,4 +93,8 @@ int Grid::get_width() {
 
 int Grid::get_height() {
     return height;
+}
+
+float Grid::get_temperature() {
+    return temperature;
 }
