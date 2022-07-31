@@ -10,6 +10,10 @@
 #include <assert.h>
 
 #define BITMAP_HEADER_SZ    54
+#define BYTES_PER_MEGABYTE  1000000
+
+typedef std::chrono::time_point<std::chrono::high_resolution_clock> _time_point;
+typedef std::chrono::high_resolution_clock                          _clock;
 
 extern char* optarg;
 extern int optind, opterr, optopt;
@@ -31,5 +35,16 @@ void        e_exit(const char*);
 void        write_grid_to_bitmap(Grid*, std::string);
 void        monte_carlo(Grid*);
 float       calculate_exp_ke_t(int, float);
+double      calculate_time_delta(_time_point, _time_point);
+void        print_progress(double, long, long, long);
+
+/* t1 > t0 */
+inline double calculate_time_delta(_time_point t1, _time_point t0) {
+    return std::chrono::duration_cast<std::chrono::duration<double>>(t1 - t0).count();
+}
+
+inline long double frac_long_divide(long x, long y) {
+    return static_cast<long double>(x) / (static_cast<long double>(y));
+}
 
 #endif /*__SERIAL_H_*/

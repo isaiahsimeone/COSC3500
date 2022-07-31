@@ -9,7 +9,7 @@ using namespace std;
 int main(int argc, char** argv) {
     int width = 100;
     int height = 100;
-    long refresh_rate = 5; // draw image every 5 iterations
+    long draw_rate = 5; // draw image every 5 iterations
     long iterations = 1000;
     float temperature = 1.5;
     unsigned int seed = 0;
@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
                 height = stoi(optarg);
                 break;
             case 'r':
-                refresh_rate = stol(optarg);
+                draw_rate = stol(optarg);
                 break;
             case 'i':
                 iterations = stol(optarg);
@@ -54,39 +54,63 @@ int main(int argc, char** argv) {
 
     cout << "Width:      " << width << "px\n"
          << "Height:     " << height << "px\n"
-         << "Refresh:    " << refresh_rate << " iterations between each image\n"
+         << "Refresh:    " << draw_rate << " iterations between each image\n"
          << "Iterations: " << iterations << "\n"
          << "Seed:       " << seed << "\n"
-         << "Temperature:" << temperature << "\n" << endl;
+         << "Temperature:" << temperature << "\n";
 
-   // cout << "w: " << width << "\nh: " << height << "\nr: " << refresh_rate << "\ng: " << graphical << "\niterations: " << iterations << "\nseed: " << seed << "\ntemperature: " << temperature << endl;
+    /* Calculate how much space this will take */
+    if (graphical) {
+        long required_size = (BITMAP_HEADER_SZ + 3 * width * height) * (iterations / draw_rate);
+        cout << "This simulation will consume " << required_size / BYTES_PER_MEGABYTE << "MB of disk space with the specified parameters" << endl;
+    }
+    cout << endl;
 
-    
     Grid* grid = new Grid(width, height, temperature);
     grid->randomise(seed);
 
     //grid->print();
+    cout << "Initialised" << endl;
 
     /* Initialise timer */
-    
-    auto t0 = std::chrono::high_resolution_clock::now();
-
+    _time_point start, end;
+    _time_point t0 = _clock::now();
+    start = t0;
     for (long i = 1; i <= iterations ;i++) {
         monte_carlo(grid);
-        if (i % refresh_rate == 0) {
-            cout << "\r" << static_cast<long double>(i) / ( static_cast<long double>(iterations)) * 100 << "% complete    ";
-            fflush(stdout);
-            write_grid_to_bitmap(grid, ("output_img/outfile_" + to_string((int)(i/refresh_rate)) + ".bmp"));
+        if (i % draw_rate == 0) {
+            
+            end = _clock::now();
+            print_progress(calculate_time_delta(end, start), i, iterations, draw_rate);
+            start = _clock::now();
+
+            if (graphical)
+                write_grid_to_bitmap(grid, ("output_img/outfile_" + to_string((int)(i/draw_rate)) + ".bmp"));
         }
         //usleep(1000 * 1);
     }
 
-    auto t1 = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> span = std::chrono::duration_cast<std::chrono::duration<double>>(t1 - t0);
+    _time_point t1 = _clock::now();
 
-    cout << "\n[*] Done. Took " << span.count() << " seconds" << endl;
-
+    cout << "\n[*] Done. Took " << calculate_time_delta(t1, t0) << " seconds" << endl;
 }
+
+void print_progress(double time_between_draws, long i, long iterations, long draw_rate) {
+    /* How long did it take from last draw to this draw */
+    long double iterations_remaining = iterations - i;
+    /* Calculate remaining time */
+    int remaining_time = ceil((iterations_remaining / draw_rate) * time_between_draws * 100) / 100;
+    int h = remaining_time / 3600;
+    int m = (remaining_time % 3600) / 60;
+    int s = (remaining_time % 3600) % 60;
+    string remaining = to_string(h) + "h" + to_string(m) + "m" + to_string(s) + "s";
+
+    cout << "\r" << frac_long_divide(i, iterations) * 100 << "% complete. ~"
+         << remaining << " remaining       ";
+
+    fflush(stdout);
+}
+
 
 void monte_carlo(Grid* grid) {
     /* Randomly pick a position (i, j) */
@@ -104,7 +128,6 @@ void monte_carlo(Grid* grid) {
         if (r < calculate_exp_ke_t(energy, grid->get_temperature()))
             grid->switch_cell(i, j);
     }
-
 }
 
 float calculate_exp_ke_t(int energy, float temperature) {
