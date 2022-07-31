@@ -103,7 +103,6 @@ int main(int argc, char** argv) {
             if (graphical)
                 write_grid_to_bitmap(grid, (output_dir_name + "/outfile_" + to_string((int)(i/draw_rate)) + ".bmp"));
         }
-        //usleep(1000 * 1);
     }
 
     _time_point t1 = _clock::now();
@@ -215,9 +214,10 @@ void write_grid_to_bitmap(Grid* grid, string out_file_name) {
  * Displays usage message to stderr
  */
 void usage(char* prog_name) {
-    cerr << prog_name << " pattern_file [--[w]idth grid_width] " 
-            << "[--[h]eight grid_height] [--[r]efresh-rate <hz>]" 
-            << " [--[g]raphical] [--[i]terations n] [--[s]eed] [--[t]emperature]" << endl;
+    cerr << prog_name << " pattern_file [--[w]idth] " 
+            << "[--[h]eight] [--[r]efresh-rate]" 
+            << " [--[g]raphical] [--[i]terations] [--[s]eed] [--[t]emperature]"
+            << " [--[o]utput <output_dir_name>]" << endl;
     exit(1);
 }
 
