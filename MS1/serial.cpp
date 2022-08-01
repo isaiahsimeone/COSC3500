@@ -4,8 +4,6 @@
 
 using namespace std;
 
-// TODO: take output folder name as argument
-
 int main(int argc, char** argv) {
     int width = 100;
     int height = 100;
@@ -144,6 +142,7 @@ void monte_carlo(Grid* grid) {
             grid->switch_cell(i, j);
     }
 }
+
 
 float calculate_exp_ke_t(int energy, float temperature) {
     return exp(2*energy / temperature);
