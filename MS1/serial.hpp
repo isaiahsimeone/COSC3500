@@ -44,7 +44,7 @@ void        print_progress(double, long, long, long);
 
 /* t1 > t0 */
 inline double calculate_time_delta(_time_point t1, _time_point t0) {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() / 1000;
+    return std::chrono::duration_cast<std::chrono::duration<double>>(t1 - t0).count();
 }
 
 inline long double frac_long_divide(long x, long y) {

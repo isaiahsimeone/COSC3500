@@ -4,6 +4,8 @@
 
 using namespace std;
 
+float precomputed_exp_ke_t[4];
+
 int main(int argc, char** argv) {
     int width = 100;
     int height = 100;
@@ -75,6 +77,7 @@ int main(int argc, char** argv) {
     grid->randomise(seed);
 
     //grid->print();
+
     cout << "Initialised\n" << endl;
 
     /* Create output folder if it doesn't exist */
@@ -151,9 +154,8 @@ void monte_carlo(Grid* grid) {
     }
 }
 
-
 float calculate_exp_ke_t(int energy, float temperature) {
-    return exp(2*energy / temperature);
+    return exp(energy * 2 / temperature);
 }
 
 /*
