@@ -10,7 +10,7 @@ int main(int argc, char** argv) {
     long draw_rate = 5; // draw image every 5 iterations
     long iterations = 1000;
     float temperature = 1.5;
-    unsigned int seed = 0;
+    string seed = "";
     bool graphical = false;
     string output_dir_name = "output_img/";
 
@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
                 iterations = stol(optarg);
                 break;
             case 's':
-                seed = stoi(optarg);
+                seed = optarg;
                 break;    
             case 't':
                 temperature = stof(optarg);
@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
     grid->randomise(seed);
 
     //grid->print();
-    cout << "Initialised" << endl;
+    cout << "Initialised\n" << endl;
 
     /* Create output folder if it doesn't exist */
     if (graphical) {
@@ -90,7 +90,7 @@ int main(int argc, char** argv) {
     _time_point start, end;
     _time_point t0 = _clock::now();
     start = t0;
-    for (long i = 1; i <= iterations ;i++) {
+    for (long i = 1; i <= iterations; i++) {
         monte_carlo(grid);
         if (i % draw_rate == 0) {
             
@@ -105,7 +105,15 @@ int main(int argc, char** argv) {
 
     _time_point t1 = _clock::now();
 
-    cout << "\n[*] Done. Took " << calculate_time_delta(t1, t0) << " seconds" << endl;
+    auto printable_start = t0.time_since_epoch().count();
+    auto printable_end = t1.time_since_epoch().count();
+
+    cout << "\n\nStart time: " << printable_start
+         << "\nEnd time:   " << printable_end
+         << "\nDelta:      " << printable_end - printable_start << endl;
+
+    /* This has overflow potential */
+    cout << "\n[*] Done. Took " << calculate_time_delta(t1, t0) << " seconds\n" << endl;
 }
 
 void print_progress(double time_between_draws, long i, long iterations, long draw_rate) {

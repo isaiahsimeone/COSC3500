@@ -6,11 +6,18 @@
 #include <string>
 #include <stdlib.h>
 
+inline bool is_numerical(std::string s) {
+    for (auto c : s)
+        if (!std::isdigit(c))
+            return false;
+    return true;
+}
+
 class Grid {
     public:
         std::pair<int,int>  get_random_coords();
         int                 get_cell(int, int);
-        void                randomise(unsigned int);
+        void                randomise(std::string);
         int                 get_width();
         int                 get_height();
         void                print();

@@ -49,10 +49,17 @@ void Grid::allocate() {
 /*
  * Randomise grid with +1's and -1's
  */
-void Grid::randomise(unsigned int seed = 0) {
+void Grid::randomise(std::string seed_str = "") {
+    unsigned int seed = 0;
+
+    /* Numerical seed provided or set seed as string hash */
+    if (is_numerical(seed_str))
+        seed = std::stoi(seed_str);
+    else
+        seed = std::hash<std::string>()(seed_str);
+
     /* Initialise */
-    if (seed)
-        srand(seed);
+    srand(seed);
 
     if (!allocated)
         allocate();

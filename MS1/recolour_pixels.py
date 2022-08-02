@@ -7,7 +7,7 @@ def main():
 	parser = argparse.ArgumentParser(description='Recolour pixels in BMP images')
 	parser.add_argument('--target', metavar='t', type=str, nargs=1, help='A tuple specifying the pixels to recolour')
 	parser.add_argument('--recolour', metavar='r', type=str, nargs=1, help="A tuple specifying the new colour for the targeted pixels")
-	parser.add_argument('files', metavar='f', type=str, nargs='+', help="The BMP files to recolour")
+	parser.add_argument('--files', metavar='f', type=str, nargs='+', help="The BMP files to recolour")
 	parser.add_argument('-y', '--yes', action='store_true', help="Don't ask if i'm sure")
 	
 	args = parser.parse_args()
