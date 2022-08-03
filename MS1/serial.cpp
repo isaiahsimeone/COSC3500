@@ -12,8 +12,8 @@ int main(int argc, char** argv) {
     long draw_rate = 5; // draw image every 5 iterations
     long iterations = 1000;
     float temperature = 1.5;
-    string seed = "";
     bool graphical = false;
+    string seed = "COSC3500";
     string output_dir_name = "output_img/";
 
     /* Parse arguments */
@@ -81,9 +81,8 @@ int main(int argc, char** argv) {
     cout << "Initialised\n" << endl;
 
     /* Create output folder if it doesn't exist */
-    if (graphical) {
+    if (graphical)
         mkdir(output_dir_name.c_str(), 0777);
-    }
 
     /* Write first image */
     if (graphical)
@@ -217,7 +216,6 @@ void write_grid_to_bitmap(Grid* grid, string out_file_name) {
     free(img);
     fclose(out_file);
 }
-
 
 /*
  * Displays usage message to stderr

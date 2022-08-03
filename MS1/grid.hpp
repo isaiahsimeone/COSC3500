@@ -33,7 +33,6 @@ class Grid {
         int                 height;
         int**               grid;
         float               temperature;
-        bool                allocated;
 };
 
 #endif /*__GRID_H_*/
