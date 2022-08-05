@@ -4,12 +4,10 @@
 
 using namespace std;
 
-float precomputed_exp_ke_t[4];
-
 int main(int argc, char** argv) {
     int width = 100;
     int height = 100;
-    long draw_rate = 5; // draw image every 5 iterations
+    long draw_rate = 0;
     long iterations = 1000;
     float temperature = 1.5;
     bool graphical = false;
@@ -18,8 +16,7 @@ int main(int argc, char** argv) {
 
     /* Parse arguments */
     char opt;
-    while ((opt = getopt_long(argc, argv, short_opts, long_opts, nullptr)) != -1) {
-
+    while ((opt = getopt_long(argc, argv, short_opts, long_opts, 0)) != -1) {
         switch (opt) {
             case 'w':
                 width = stoi(optarg);
@@ -56,6 +53,11 @@ int main(int argc, char** argv) {
     if (optind < argc)
         cerr << "Ignoring " << argc - optind << " extra argument(s)" << endl;
 
+    /* If unspecified, print progress every 1% */
+    if (draw_rate == 0)
+        draw_rate = iterations * 0.01;
+
+    /* Display selected settings */
     cout << "Width:       " << width << "px\n"
          << "Height:      " << height << "px\n"
          << "Refresh:     " << draw_rate << " iterations between each image\n"
@@ -64,19 +66,20 @@ int main(int argc, char** argv) {
          << "Temperature: " << temperature << "\n"
          << "Output dir:  " << output_dir_name << "\n";
 
-    /* Calculate how much space this will take */
+    /* Calculate how much disk space this will take */
     if (graphical) {
-        long required_size = (BITMAP_HEADER_SZ + 3 * width * height) * (iterations / draw_rate);
+        long required_size = (BITMAP_HEADER_SZ + 3 * width * height) 
+            * (iterations / draw_rate);
         cout << "This simulation will consume " 
-            << required_size / BYTES_PER_MEGABYTE << "MB of disk space and create "
-            << iterations/draw_rate << " images with the specified parameters" << endl;
+            << required_size / BYTES_PER_MEGABYTE 
+            << "MB of disk space and create "
+            << iterations/draw_rate 
+            << " images with the specified parameters" << endl;
     }
     cout << endl;
 
     Grid* grid = new Grid(width, height, temperature);
     grid->randomise(seed);
-
-    //grid->print();
 
     cout << "Initialised\n" << endl;
 
@@ -92,16 +95,20 @@ int main(int argc, char** argv) {
     _time_point start, end;
     _time_point t0 = _clock::now();
     start = t0;
+
+    /* Monte carlo loop */
     for (long i = 1; i <= iterations; i++) {
         monte_carlo(grid);
         if (i % draw_rate == 0) {
             
             end = _clock::now();
-            print_progress(calculate_time_delta(end, start), i, iterations, draw_rate);
+            print_progress(calculate_time_delta(end, start), i, iterations,
+                draw_rate);
             start = _clock::now();
 
             if (graphical)
-                write_grid_to_bitmap(grid, (output_dir_name + "/outfile_" + to_string((int)(i/draw_rate)) + ".bmp"));
+                write_grid_to_bitmap(grid, (output_dir_name + "/outfile_" 
+                    + to_string((int)(i/draw_rate)) + ".bmp"));
         }
     }
 
@@ -115,19 +122,25 @@ int main(int argc, char** argv) {
          << "\nDelta:      " << printable_end - printable_start << endl;
 
     /* This has overflow potential */
-    cout << "\n[*] Done. Took " << calculate_time_delta(t1, t0) << " seconds\n" << endl;
+    cout << COLOUR_GREEN << "\n[*] Done. Took " << calculate_time_delta(t1, t0) 
+         << " seconds\n" << COLOUR_RESET << endl;
 }
 
-void print_progress(double time_between_draws, long i, long iterations, long draw_rate) {
+void print_progress(double time_between_draws, long i, long iterations,
+        long draw_rate) {
     /* How long did it take from last draw to this draw */
     long double iterations_remaining = iterations - i;
+
     /* Calculate remaining time */
-    int remaining_time = ceil((iterations_remaining / draw_rate) * time_between_draws * 100) / 100;
+    int remaining_time = ceil((iterations_remaining / draw_rate) 
+        * time_between_draws * 100) / 100;
     int h = remaining_time / 3600;
     int m = (remaining_time % 3600) / 60;
     int s = (remaining_time % 3600) % 60;
-    string remaining = to_string(h) + "h" + to_string(m) + "m" + to_string(s) + "s";
+    string remaining = to_string(h) + "h" + to_string(m) + "m" 
+        + to_string(s) + "s";
 
+    /* x% complete ~HHMMSS remaining */
     cout << "\r" << frac_long_divide(i, iterations) * 100 << "% complete. ~"
          << remaining << " remaining       ";
 
@@ -141,13 +154,18 @@ void monte_carlo(Grid* grid) {
     int i = point.first;
     int j = point.second;
 
+    /*
+     * If energy > 0, switch the spin
+     * If energy < 0, pick r E [0, 1). If r < e^(2*energy/T), switch 
+     */
+
     int energy = grid->calculate_energy(i, j);
-    /* If E > 0, switch the spin */
-    if (energy > 0) {
+
+    if (energy > 0)
         grid->switch_cell(i, j);
-    /* If E < 0, pick r E [0, 1). If r < e^(2E/T), switch */
-    } else if (energy < 0) {
-        float r = static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 0.99999));
+    
+    else if (energy < 0) {
+        float r = rand_float_range(0, 0.99999);
         if (r < calculate_exp_ke_t(energy, grid->get_temperature()))
             grid->switch_cell(i, j);
     }
@@ -160,11 +178,14 @@ float calculate_exp_ke_t(int energy, float temperature) {
 /*
  * Write the specified grid to a bitmap image file named 'out_file_name'
  * This code has been adapted from (deusmacabre)
- * https://stackoverflow.com/questions/2654480/writing-bmp-image-in-pure-c-c-without-other-libraries
+ * stackoverflow.com/questions/2654480
+ * /writing-bmp-image-in-pure-c-c-without-other-libraries
  */
 void write_grid_to_bitmap(Grid* grid, string out_file_name) {
-    unsigned char bmp_file_header[14] = {'B', 'M', 0, 0, 0, 0, 0, 0, 0, 0, 54, 0, 0, 0};
-    unsigned char bmp_info_header[40] = {40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 24, 0};
+    unsigned char bmp_file_header[14] 
+        = {'B', 'M', 0, 0, 0, 0, 0, 0, 0, 0, 54, 0, 0, 0};
+    unsigned char bmp_info_header[40] 
+        = {40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 24, 0};
     unsigned char bmp_padding[3] = {0, 0, 0};
 
     int h = grid->get_height();
@@ -227,11 +248,3 @@ void usage(char* prog_name) {
             << " [--[o]utput <output_dir_name>]" << endl;
     exit(1);
 }
-
-/*
- * Display message to stderr, then exit
- */
- void e_exit(const char* msg) {
-    cerr << msg << endl;
-    exit(1);
- }

@@ -20,6 +20,9 @@ Grid::~Grid() {
     delete[] grid;
 }
 
+/*
+ * Return the value at the cell specified by coordinates
+ */
 int Grid::get_cell(int x, int y) {
     if (y >= height || y < 0)
         return 0;

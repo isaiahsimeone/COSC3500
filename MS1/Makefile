@@ -1,5 +1,5 @@
-CPP=g++
-CPPFLAGS=-Wall -pedantic -g
+CXX=g++
+CXXFLAGS=-Wall -pedantic -g -O3 
 OBJS=grid.o serial.o
 BIN=serial
 DEPS=serial.hpp grid.hpp
@@ -7,10 +7,10 @@ DEPS=serial.hpp grid.hpp
 all: $(BIN)
 
 serial: $(OBJS)
-	$(CPP) $(CPPFLAGS) $(OBJS) -o $(BIN)
+	$(CXX) $(CXXFLAGS) $(OBJS) -o $(BIN)
 
 %.o: %.cpp $(DEPS)
-	$(CPP) $(CPPFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
 	rm -f *.o
