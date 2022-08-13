@@ -1,8 +1,8 @@
 CXX=g++
 CXXFLAGS=-Wall -pedantic -g -O3 
-OBJS=grid.o serial.o
+OBJS=lattice.o serial.o util.o
 BIN=serial
-DEPS=serial.hpp grid.hpp
+DEPS=serial.hpp lattice.hpp util.hpp
 
 all: $(BIN)
 

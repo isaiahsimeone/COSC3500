@@ -1,5 +1,3 @@
-
-#include "grid.hpp"
 #include "serial.hpp"
 
 using namespace std;
@@ -50,6 +48,7 @@ int main(int argc, char** argv) {
         }
     }
 
+    /* Too many arguments specified */
     if (optind < argc)
         cerr << "Ignoring " << argc - optind << " extra argument(s)" << endl;
 
@@ -66,7 +65,7 @@ int main(int argc, char** argv) {
          << "Temperature: " << temperature << "\n"
          << "Output dir:  " << output_dir_name << "\n";
 
-    /* Calculate how much disk space this will take */
+    /* Calculate how much disk space this simulation will take */
     if (graphical) {
         long required_size = (BITMAP_HEADER_SZ + 3 * width * height) 
             * (iterations / draw_rate);
@@ -78,8 +77,9 @@ int main(int argc, char** argv) {
     }
     cout << endl;
 
-    Grid* grid = new Grid(width, height, temperature);
-    grid->randomise(seed);
+    /* Randomise lattice with specified seed */
+    Lattice* lattice = new Lattice(width, height, temperature);
+    lattice->randomise(seed);
 
     cout << "Initialised\n" << endl;
 
@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
 
     /* Write first image */
     if (graphical)
-        write_grid_to_bitmap(grid, (output_dir_name + "/outfile_0.bmp"));
+        lattice->write_to_bitmap(output_dir_name + "/outfile_0.bmp");
 
     /* Initialise timer */
     _time_point start, end;
@@ -98,7 +98,7 @@ int main(int argc, char** argv) {
 
     /* Monte carlo loop */
     for (long i = 1; i <= iterations; i++) {
-        monte_carlo(grid);
+        monte_carlo(lattice);
         if (i % draw_rate == 0) {
             
             end = _clock::now();
@@ -107,7 +107,7 @@ int main(int argc, char** argv) {
             start = _clock::now();
 
             if (graphical)
-                write_grid_to_bitmap(grid, (output_dir_name + "/outfile_" 
+                lattice->write_to_bitmap((output_dir_name + "/outfile_" 
                     + to_string((int)(i/draw_rate)) + ".bmp"));
         }
     }
@@ -121,7 +121,6 @@ int main(int argc, char** argv) {
          << "\nEnd time:   " << printable_end
          << "\nDelta:      " << printable_end - printable_start << endl;
 
-    /* This has overflow potential */
     cout << COLOUR_GREEN << "\n[*] Done. Took " << calculate_time_delta(t1, t0) 
          << " seconds\n" << COLOUR_RESET << endl;
 }
@@ -141,16 +140,17 @@ void print_progress(double time_between_draws, long i, long iterations,
         + to_string(s) + "s";
 
     /* x% complete ~HHMMSS remaining */
-    cout << "\r" << frac_long_divide(i, iterations) * 100 << "% complete. ~"
+    cout << "\r" << frac_long_divide(i, iterations) * 100 
+         << "% complete. ~"
          << remaining << " remaining       ";
 
     fflush(stdout);
 }
 
 
-void monte_carlo(Grid* grid) {
+void monte_carlo(Lattice* lattice) {
     /* Randomly pick a position (i, j) */
-    pair<int, int> point = grid->get_random_coords();
+    pair<int, int> point = lattice->get_random_coords();
     int i = point.first;
     int j = point.second;
 
@@ -159,83 +159,20 @@ void monte_carlo(Grid* grid) {
      * If energy < 0, pick r E [0, 1). If r < e^(2*energy/T), switch 
      */
 
-    int energy = grid->calculate_energy(i, j);
+    int energy = lattice->calculate_energy(i, j);
 
     if (energy > 0)
-        grid->switch_cell(i, j);
+        lattice->switch_cell(i, j);
     
     else if (energy < 0) {
         float r = rand_float_range(0, 0.99999);
-        if (r < calculate_exp_ke_t(energy, grid->get_temperature()))
-            grid->switch_cell(i, j);
+        if (r < calculate_exp_ke_t(energy, lattice->get_temperature()))
+            lattice->switch_cell(i, j);
     }
 }
 
 float calculate_exp_ke_t(int energy, float temperature) {
     return exp(energy * 2 / temperature);
-}
-
-/*
- * Write the specified grid to a bitmap image file named 'out_file_name'
- * This code has been adapted from (deusmacabre)
- * stackoverflow.com/questions/2654480
- * /writing-bmp-image-in-pure-c-c-without-other-libraries
- */
-void write_grid_to_bitmap(Grid* grid, string out_file_name) {
-    unsigned char bmp_file_header[14] 
-        = {'B', 'M', 0, 0, 0, 0, 0, 0, 0, 0, 54, 0, 0, 0};
-    unsigned char bmp_info_header[40] 
-        = {40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 24, 0};
-    unsigned char bmp_padding[3] = {0, 0, 0};
-
-    int h = grid->get_height();
-    int w = grid->get_width();
-
-    FILE* out_file = fopen(out_file_name.c_str(), "wb");
-    int filesize = BITMAP_HEADER_SZ + 3 * w * h;
-
-    unsigned char* img = (unsigned char*)malloc(3 * w * h);
-    memset(img, 0, sizeof(3 * w * h));
-    int colour;
-
-    /* Create 3 byte pixels */
-    for (int i = 0; i < w; i++) {
-        for (int j = 0; j < h; j++) {
-            colour = (grid->get_cell(i, j) == -1 ? 255 : 0);
-
-            img[(j * w + i) * 3 + 2] = (unsigned char)colour;
-            img[(j * w + i) * 3 + 1] = (unsigned char)colour;
-            img[(j * w + i) * 3 + 0] = (unsigned char)colour;
-        }
-    }
-
-    /* Populate headers */
-    bmp_file_header[2] = (unsigned char)(filesize >> 0);
-    bmp_file_header[3] = (unsigned char)(filesize >> 8);
-    bmp_file_header[4] = (unsigned char)(filesize >> 16);
-    bmp_file_header[5] = (unsigned char)(filesize >> 24);
-
-    bmp_info_header[4] = (unsigned char)(w >> 0);
-    bmp_info_header[5] = (unsigned char)(w >> 8);
-    bmp_info_header[6] = (unsigned char)(w >> 16);
-    bmp_info_header[7] = (unsigned char)(w >> 24);
-
-    bmp_info_header[8] = (unsigned char)(h >> 0);
-    bmp_info_header[9] = (unsigned char)(h >> 8);
-    bmp_info_header[10] = (unsigned char)(h >> 16);
-    bmp_info_header[11] = (unsigned char)(h >> 24);
-
-    /* Write headers */
-    fwrite(bmp_file_header, 1, sizeof(bmp_file_header), out_file);
-    fwrite(bmp_info_header, 1, sizeof(bmp_info_header), out_file);
-
-    /* Write image pixels */
-    for (int i = 0; i < h; i++) {
-        fwrite(img + (w * (h - i - 1) * 3), 3, w, out_file);
-        fwrite(bmp_padding, 1, (4 - (w * 3) % 4) % 4, out_file);
-    }
-    free(img);
-    fclose(out_file);
 }
 
 /*

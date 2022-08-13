@@ -1,19 +1,15 @@
-#ifndef __GRID_H_
-#define __GRID_H_
+#ifndef __LATTICE_H_
+#define __LATTICE_H_
 
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <stdlib.h>
+#include <cassert>  /* assert */
+#include <cstring>  /* memset */
 
-inline bool is_numerical(std::string s) {
-    for (auto c : s)
-        if (!std::isdigit(c))
-            return false;
-    return true;
-}
+#include "util.hpp"
 
-class Grid {
+class Lattice {
     public:
         std::pair<int,int>  get_random_coords();
         int                 get_cell(int, int);
@@ -25,14 +21,15 @@ class Grid {
         void                set_cell(int, int, int);
         void                switch_cell(int, int);
         float               get_temperature();
-                            Grid(int, int, float);
-                            ~Grid();
+        void                write_to_bitmap(std::string);
+                            Lattice(int, int, float);
+                            ~Lattice();
     private:
         void                allocate();
         int                 width;
         int                 height;
-        int**               grid;
+        int**               lattice;
         float               temperature;
 };
 
-#endif /*__GRID_H_*/
+#endif /*__LATTICE_H_*/
