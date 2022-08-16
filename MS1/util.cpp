@@ -24,6 +24,10 @@ float rand_float_range(float low, float high) {
         (static_cast<float>(RAND_MAX / (high - low))) + low;
 }
 
+/*
+ * Determines whether the specified string, s, is comprised
+ * of only digits.
+ */
 bool is_numerical(std::string s) {
     for (auto c : s)
         if (!std::isdigit(c))

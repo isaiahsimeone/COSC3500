@@ -1,4 +1,3 @@
-
 #include "lattice.hpp"
 
 /*
@@ -81,6 +80,11 @@ void Lattice::randomise(std::string seed_str = "COSC3500") {
             lattice[i][j] = (rand() % 2 == 0 ? 1 : -1);
 }
 
+/*
+ * Calculate the 'energy' of the cell at point x,y on the lattice.
+ * The energy is computed by taking the sum of each directly 
+ * adjacent cell, multiplied by the negative of the specified cell value
+ */
 int Lattice::calculate_energy(int x, int y) {
     return (-1 * get_cell(x, y)) * (get_cell(x + 1, y) + 
         get_cell(x - 1, y) + get_cell(x, y + 1) + get_cell(x, y - 1));

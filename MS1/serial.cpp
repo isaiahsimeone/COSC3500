@@ -2,6 +2,9 @@
 
 using namespace std;
 
+/*
+ * Monte carlo ising. Simple usage: ./serial --help
+ */
 int main(int argc, char** argv) {
     int width = 100;
     int height = 100;
@@ -125,6 +128,9 @@ int main(int argc, char** argv) {
          << " seconds\n" << COLOUR_RESET << endl;
 }
 
+/*
+ * Display the progress of the simulation to stdout
+ */
 void print_progress(double time_between_draws, long i, long iterations,
         long draw_rate) {
     /* How long did it take from last draw to this draw */
@@ -147,20 +153,22 @@ void print_progress(double time_between_draws, long i, long iterations,
     fflush(stdout);
 }
 
-
+/*
+ * Perform one iteration of the monte carlo ising
+ * model on the specified lattice
+ */
 void monte_carlo(Lattice* lattice) {
     /* Randomly pick a position (i, j) */
     pair<int, int> point = lattice->get_random_coords();
     int i = point.first;
     int j = point.second;
 
+    int energy = lattice->calculate_energy(i, j);
+
     /*
      * If energy > 0, switch the spin
      * If energy < 0, pick r E [0, 1). If r < e^(2*energy/T), switch 
      */
-
-    int energy = lattice->calculate_energy(i, j);
-
     if (energy > 0)
         lattice->switch_cell(i, j);
     
