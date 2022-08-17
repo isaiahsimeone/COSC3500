@@ -1,4 +1,13 @@
-#include "eigensolver.h" /* MatrixVectorMultiply */
+#include <string>
+#include <iostream>
+#include <iomanip>
+
+#include "eigensolver.h"
+#include "randutil.h"
+
+/* Global variables to store the matrix */
+double* M = nullptr;
+int N = 0;
 
 void MatrixVectorMultiply(double* Y, const double* X) {
     // Do AVX trix here
