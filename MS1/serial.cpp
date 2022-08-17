@@ -12,8 +12,10 @@ int main(int argc, char** argv) {
     long iterations = 1000;
     float temperature = 1.5;
     bool graphical = false;
+    bool dump_information = false;
     string seed = "COSC3500";
     string output_dir_name = "output_img/";
+    FILE* info_dump_file = NULL;
 
     /* Parse arguments */
     char opt;
@@ -40,6 +42,9 @@ int main(int argc, char** argv) {
             case 'g':
                 graphical = true;
                 break;
+            case 'd':
+                dump_information = true;
+                break;    
             case 'o':
                 output_dir_name = optarg;
                 break;
@@ -83,16 +88,18 @@ int main(int argc, char** argv) {
     /* Randomise lattice with specified seed */
     Lattice* lattice = new Lattice(width, height, temperature);
     lattice->randomise(seed);
-
+    
     cout << "Initialised\n" << endl;
 
     /* Create output folder if it doesn't exist */
-    if (graphical)
+    if (graphical) {
         mkdir(output_dir_name.c_str(), 0777);
-
-    /* Write first image */
-    if (graphical)
+        /* Write first image */
         lattice->write_to_bitmap(output_dir_name + "/outfile_0.bmp");
+    }
+
+    if (dump_information)
+        info_dump_file = fopen(("information_" + to_string(iterations) + "_" + to_string(temperature) + ".csv").c_str(), "w");
 
     /* Initialise timer */
     _time_point start, end;
@@ -101,7 +108,7 @@ int main(int argc, char** argv) {
 
     /* Monte carlo loop */
     for (long i = 1; i <= iterations; i++) {
-        monte_carlo(lattice);
+        metropolis(lattice);
         if (i % draw_rate == 0) {
             
             end = _clock::now();
@@ -112,10 +119,15 @@ int main(int argc, char** argv) {
             if (graphical)
                 lattice->write_to_bitmap((output_dir_name + "/outfile_" 
                     + to_string((int)(i/draw_rate)) + ".bmp"));
+            if (dump_information)
+                lattice->dump_information(info_dump_file, i);
         }
     }
 
     _time_point t1 = _clock::now();
+
+    if (dump_information)
+        fclose(info_dump_file);
 
     auto printable_start = t0.time_since_epoch().count();
     auto printable_end = t1.time_since_epoch().count();
@@ -153,22 +165,37 @@ void print_progress(double time_between_draws, long i, long iterations,
     fflush(stdout);
 }
 
-/*
- * Perform one iteration of the monte carlo ising
- * model on the specified lattice
- */
-void monte_carlo(Lattice* lattice) {
+
+void metropolis(Lattice* lattice) {
     /* Randomly pick a position (i, j) */
     pair<int, int> point = lattice->get_random_coords();
     int i = point.first;
     int j = point.second;
 
-    int energy = lattice->calculate_energy(i, j);
+    int energy_change = lattice->calculate_energy_delta(i, j);
+    
+    if (energy_change < 0 || rand_float_range(0,0.999999) < exp(-1 * energy_change / (lattice->get_temperature()))) {
+        lattice->switch_cell(i, j);
+    }
+
 
     /*
+
+    int delta_energy = new_energy - current_energy;
+
+    if (delta_energy < 0) {
+        // Accept 
+    } else {
+        float r = rand_float_range(0, 0.99999);
+        if (r > exp(-delta_energy / (CONST_BOLTZMANN * lattice->get_temperature())))
+            lattice->switch_cell(i, j); // Reject
+    }
+
+
      * If energy > 0, switch the spin
      * If energy < 0, pick r E [0, 1). If r < e^(2*energy/T), switch 
      */
+     /*
     if (energy > 0)
         lattice->switch_cell(i, j);
     
@@ -176,7 +203,7 @@ void monte_carlo(Lattice* lattice) {
         float r = rand_float_range(0, 0.99999);
         if (r < calculate_exp_ke_t(energy, lattice->get_temperature()))
             lattice->switch_cell(i, j);
-    }
+    }*/
 }
 
 float calculate_exp_ke_t(int energy, float temperature) {

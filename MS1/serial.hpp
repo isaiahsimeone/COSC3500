@@ -13,15 +13,18 @@
 #define COLOUR_GREEN        "\x1B[32m"
 #define COLOUR_RESET        "\x1B[0m"
 
+#define CONST_BOLTZMANN     1.38e-23
+
 extern char* optarg;
 extern int optind, opterr, optopt;
 
-const char* const short_opts = "gw:h:r:i:s:t:o:";
+const char* const short_opts = "dgw:h:r:i:s:t:o:";
 const option long_opts[] = {
     {"width", required_argument, 0, 'w'},
     {"height", required_argument, 0, 'h'},
     {"refresh-rate", required_argument, 0, 'r'},
     {"graphical", no_argument, 0, 'g'},
+    {"dump-information", no_argument, 0, 'd'},
     {"iterations", required_argument, 0, 'i'},
     {"seed", required_argument, 0, 's'},
     {"temperature", required_argument, 0, 't'},
@@ -29,7 +32,7 @@ const option long_opts[] = {
 };
 
 /* Prototypes */
-void        monte_carlo(Lattice*);
+void        metropolis(Lattice*);
 float       calculate_exp_ke_t(int, float);
 void        print_progress(double, long, long, long);
 void        usage(char*);

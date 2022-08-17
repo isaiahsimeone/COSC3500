@@ -60,6 +60,12 @@ void Lattice::allocate() {
         lattice[i] = new int[width]();
 }
 
+void Lattice::init_spin(int spin) {
+    for (int i = 0; i < height; i++)
+        for (int j = 0; j < width; j++)
+            lattice[i][j] = spin;
+}
+
 /*
  * Randomise lattice with +1's and -1's
  */
@@ -80,14 +86,27 @@ void Lattice::randomise(std::string seed_str = "COSC3500") {
             lattice[i][j] = (rand() % 2 == 0 ? 1 : -1);
 }
 
-/*
- * Calculate the 'energy' of the cell at point x,y on the lattice.
- * The energy is computed by taking the sum of each directly 
- * adjacent cell, multiplied by the negative of the specified cell value
- */
-int Lattice::calculate_energy(int x, int y) {
-    return (-1 * get_cell(x, y)) * (get_cell(x + 1, y) + 
-        get_cell(x - 1, y) + get_cell(x, y + 1) + get_cell(x, y - 1));
+void Lattice::dump_information(FILE* f, long iteration) {
+
+    double average_spin = 0;
+
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            if (lattice[i][j] == -1) {
+                average_spin++;
+            } else {
+                average_spin--;
+            }
+        }
+    }
+    average_spin /= width * height;
+
+    fprintf(f, "%ld,%lf\n", iteration, average_spin);
+}
+
+
+int Lattice::calculate_energy_delta(int x, int y) {
+    return (2 * 1/*J*/ * get_cell(x, y)) * (get_cell(x + 1, y) + get_cell(x - 1, y) + get_cell(x, y + 1) + get_cell(x, y - 1));
 }
 
 /*
@@ -95,8 +114,8 @@ int Lattice::calculate_energy(int x, int y) {
  * lattice height & width
  */
 std::pair<int, int> Lattice::get_random_coords() {
-    int rand_x = 0 + (rand() % static_cast<int>(width + 1));
-    int rand_y = 0 + (rand() % static_cast<int>(height + 1));
+    int rand_x = 0 + (rand() % static_cast<int>(width));
+    int rand_y = 0 + (rand() % static_cast<int>(height));
     
     return std::make_pair(rand_x, rand_y);
 }
