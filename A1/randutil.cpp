@@ -52,5 +52,4 @@ std::vector<unsigned> get_seed()
 {
    return Seed;
 }
-
 } // namespace randutil

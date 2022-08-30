@@ -12,6 +12,26 @@
 double* M = nullptr;
 int N = 0;
 
+void print_matrix() {
+   for (int i = 0; i < N; i++) {
+      for (int j = 0; j < N; j++) {
+         std::cout << M[i*N+j] << " ";
+      }
+      std::cout << std::endl;
+   }
+   std::cout << std::endl;
+}
+
+void print_matrix(double* y) {
+   for (int i = 0; i < N; i++) {
+      for (int j = 0; j < N; j++) {
+         std::cout << (int)y[i*N+j] << " ";
+      }
+      std::cout << std::endl;
+   }
+   std::cout << std::endl;
+}
+
 // implementation of the matrix-vector multiply function
 void MatrixVectorMultiply(double* Y, const double* X)
 {
@@ -20,10 +40,12 @@ void MatrixVectorMultiply(double* Y, const double* X)
       double y = 0;
       for (int j = 0; j < N; ++j)
       {
+         print_matrix(Y);
          y += M[i*N+j] * X[j];
       }
       Y[i] = y;
    }
+   std::cout << "***********" << std::endl;
 }
 
 int main(int argc, char** argv)
@@ -51,12 +73,13 @@ int main(int argc, char** argv)
    // The off-diagonal entries are gaussian distributed with variance 1.
    for (int i = 0; i < N; ++i)
    {
-      M[i*N+i] = std::sqrt(2.0) * randutil::randn();
+      M[i*N+i] = randutil::rand_int(0, 10);
       for (int j = i+1; j < N; ++j)
       {
-         M[i*N + j] = M[j*N + i] = randutil::randn();
+         M[i*N + j] = M[j*N + i] = randutil::rand_int(0, 10);
       }
    }
+
    auto FinishInitialization = std::chrono::high_resolution_clock::now();
 
    // Call the eigensolver

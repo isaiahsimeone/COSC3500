@@ -106,7 +106,8 @@ void Lattice::dump_information(FILE* f, long iteration) {
 
 
 int Lattice::calculate_energy_delta(int x, int y) {
-    return (2 * 1/*J*/ * get_cell(x, y)) * (get_cell(x + 1, y) + get_cell(x - 1, y) + get_cell(x, y + 1) + get_cell(x, y - 1));
+    return (2 * 1/*J*/ * get_cell(x, y)) * (get_cell(x + 1, y) 
+        + get_cell(x - 1, y) + get_cell(x, y + 1) + get_cell(x, y - 1));
 }
 
 /*

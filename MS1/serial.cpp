@@ -165,7 +165,10 @@ void print_progress(double time_between_draws, long i, long iterations,
     fflush(stdout);
 }
 
-
+/*
+ * Perform an iteration of the Monte Carlo Metropolis
+ * algorithm on the specified lattice
+ */
 void metropolis(Lattice* lattice) {
     /* Randomly pick a position (i, j) */
     pair<int, int> point = lattice->get_random_coords();
@@ -177,33 +180,6 @@ void metropolis(Lattice* lattice) {
     if (energy_change < 0 || rand_float_range(0,0.999999) < exp(-1 * energy_change / (lattice->get_temperature()))) {
         lattice->switch_cell(i, j);
     }
-
-
-    /*
-
-    int delta_energy = new_energy - current_energy;
-
-    if (delta_energy < 0) {
-        // Accept 
-    } else {
-        float r = rand_float_range(0, 0.99999);
-        if (r > exp(-delta_energy / (CONST_BOLTZMANN * lattice->get_temperature())))
-            lattice->switch_cell(i, j); // Reject
-    }
-
-
-     * If energy > 0, switch the spin
-     * If energy < 0, pick r E [0, 1). If r < e^(2*energy/T), switch 
-     */
-     /*
-    if (energy > 0)
-        lattice->switch_cell(i, j);
-    
-    else if (energy < 0) {
-        float r = rand_float_range(0, 0.99999);
-        if (r < calculate_exp_ke_t(energy, lattice->get_temperature()))
-            lattice->switch_cell(i, j);
-    }*/
 }
 
 float calculate_exp_ke_t(int energy, float temperature) {
