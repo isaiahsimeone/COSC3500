@@ -4,6 +4,8 @@ using namespace std;
 
 /*
  * Monte carlo ising. Simple usage: ./serial --help
+ * Basic example: ./serial -w 250 -h 250 -i 100000000
+ * With graphics: ./serial -w 250 -h 250 -i 100000000 -r 100000 -g -o output_img
  */
 int main(int argc, char** argv) {
     int width = 100;
@@ -175,15 +177,11 @@ void metropolis(Lattice* lattice) {
     int i = point.first;
     int j = point.second;
 
-    int energy_change = lattice->calculate_energy_delta(i, j);
+    int energy_change = lattice->calculate_energy(i, j);
     
-    if (energy_change < 0 || rand_float_range(0,0.999999) < exp(-1 * energy_change / (lattice->get_temperature()))) {
+    if (energy_change < 0 || rand_float_range(0,0.999999) < 
+            exp(-1 * energy_change / (lattice->get_temperature())))
         lattice->switch_cell(i, j);
-    }
-}
-
-float calculate_exp_ke_t(int energy, float temperature) {
-    return exp(energy * 2 / temperature);
 }
 
 /*

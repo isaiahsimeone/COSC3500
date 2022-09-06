@@ -55,15 +55,9 @@ void Lattice::switch_cell(int x, int y) {
  * Allocate the lattice array with the specified dimensions
  */
 void Lattice::allocate() {
-    lattice = new int*[height]();
+    lattice = new char*[height]();
     for (int i = 0; i < height; i++)
-        lattice[i] = new int[width]();
-}
-
-void Lattice::init_spin(int spin) {
-    for (int i = 0; i < height; i++)
-        for (int j = 0; j < width; j++)
-            lattice[i][j] = spin;
+        lattice[i] = new char[width]();
 }
 
 /*
@@ -86,8 +80,11 @@ void Lattice::randomise(std::string seed_str = "COSC3500") {
             lattice[i][j] = (rand() % 2 == 0 ? 1 : -1);
 }
 
+/*
+ * Output informtion about the lattice to the specified
+ * file.
+ */
 void Lattice::dump_information(FILE* f, long iteration) {
-
     double average_spin = 0;
 
     for (int i = 0; i < height; i++) {
@@ -105,7 +102,10 @@ void Lattice::dump_information(FILE* f, long iteration) {
 }
 
 
-int Lattice::calculate_energy_delta(int x, int y) {
+/*
+ * Calculate the energy of the cell specified by the x,y coordinate pair
+ */
+int Lattice::calculate_energy(int x, int y) {
     return (2 * 1/*J*/ * get_cell(x, y)) * (get_cell(x + 1, y) 
         + get_cell(x - 1, y) + get_cell(x, y + 1) + get_cell(x, y - 1));
 }

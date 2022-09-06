@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-Wall -pedantic -g -Ofast
+CXXFLAGS=-Wall -pedantic -g -O3 -std=c++11
 OBJS=lattice.o serial.o util.o
 BIN=serial
 DEPS=serial.hpp lattice.hpp util.hpp
