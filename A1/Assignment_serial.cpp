@@ -6,9 +6,13 @@
 #include <string>
 #include <iostream>
 #include <iomanip>
+#include <fstream>
+
+using namespace std;
 
 // global variables to store the matrix
 
+ofstream out_serial;
 double* M = nullptr;
 int N = 0;
 
@@ -32,6 +36,7 @@ void print_matrix(double* y) {
    std::cout << std::endl;
 }
 
+
 // implementation of the matrix-vector multiply function
 void MatrixVectorMultiply(double* Y, const double* X)
 {
@@ -40,16 +45,23 @@ void MatrixVectorMultiply(double* Y, const double* X)
       double y = 0;
       for (int j = 0; j < N; ++j)
       {
-         print_matrix(Y);
          y += M[i*N+j] * X[j];
+         //std::cout << "y += " << M[i*N+j] << " * "<< X[j] << std::endl;
       }
       Y[i] = y;
    }
-   std::cout << "***********" << std::endl;
+
+   // Export Y to check validity
+  for (int i = 0; i < N; i++)
+      out_serial << Y[i] << " ";
+   out_serial << "\n";
+
 }
 
 int main(int argc, char** argv)
 {
+   // Output file
+   out_serial.open("serial_results.txt", ios::out );
    // get the current time, for benchmarking
    auto StartTime = std::chrono::high_resolution_clock::now();
 
@@ -73,12 +85,14 @@ int main(int argc, char** argv)
    // The off-diagonal entries are gaussian distributed with variance 1.
    for (int i = 0; i < N; ++i)
    {
-      M[i*N+i] = randutil::rand_int(0, 10);
+      M[i*N+i] = std::sqrt(2.0) * randutil::randn();
       for (int j = i+1; j < N; ++j)
       {
-         M[i*N + j] = M[j*N + i] = randutil::rand_int(0, 10);
+         M[i*N + j] = M[j*N + i] = randutil::randn();
       }
    }
+
+ // print_matrix(M);
 
    auto FinishInitialization = std::chrono::high_resolution_clock::now();
 
@@ -86,6 +100,9 @@ int main(int argc, char** argv)
    EigensolverInfo Info = eigenvalues_arpack(N, 100);
 
    auto FinishTime = std::chrono::high_resolution_clock::now();
+
+   // Close file
+   out_serial.close();
 
    auto InitializationTime = std::chrono::duration_cast<std::chrono::microseconds>(FinishInitialization - StartTime);
    auto TotalTime = std::chrono::duration_cast<std::chrono::microseconds>(FinishTime - StartTime);

@@ -1,19 +1,85 @@
 #include <string>
 #include <iostream>
 #include <iomanip>
+#include <cstring>
+#include <iostream>
+#include <fstream>
+
+#include <immintrin.h>
 
 #include "eigensolver.h"
 #include "randutil.h"
+using namespace std;
 
 /* Global variables to store the matrix */
 double* M = nullptr;
 int N = 0;
+// For outputting file
+ofstream out_avx;
 
 void MatrixVectorMultiply(double* Y, const double* X) {
-    // Do AVX trix here
+   // Do AVX trix here
+ 
+   memset(Y, 0L, sizeof(double) * N);
+
+   asm volatile("#---- AVX INSTRUCTIONS START HERE ----");
+
+   for (int j = 0, i = 0; i < N; i++) {
+      /* We want to multiply the matrix columns by the same
+       * scalar value. Adapted from https://stackoverflow.com/a/9080351 */
+      __m256d scalar = _mm256_set1_pd(X[i]);
+
+       for (j = 0; j + 4 < N; j += 4) {
+         /* Get 4 doubles from the matrix column */
+         __m256d matcolumn = *((__m256d*)(M + i * N + j));
+
+         /* Multiply matrix column by scalar (vector element) */
+         // Product = M[i*N+j] * X[i] four doubles at a time
+         __m256d product = _mm256_mul_pd(matcolumn, scalar);
+
+         /* Store the result in Y. Four doubles from index j will be populated */
+         // Result = Y[j] + product
+         __m256d result = _mm256_add_pd(_mm256_load_pd(Y + j), product);
+
+         // Y[j] += result
+         _mm256_storeu_pd(Y + j, result);
+      }
+
+      asm volatile("#---- AVX INSTRUCTIONS END HERE ----");
+
+      /* If N % 4 != 0, there will be left over's. We just do this serially */
+      while (j < N) {
+          Y[j] += M[i * N + j] * X[i];
+          j++;
+      }
+    }
+
+
+   /*
+      for (int i = 0; i < N; ++i)
+      {
+      double y = 0;
+         for (int j = 0; j < N; ++j)
+         {
+            y += M[i*N+j] * X[j];
+            std::cout << "y += " << M[i*N+j] << " * "<< X[j] << std::endl;
+         }
+         Y[i] = y;
+      }
+   */
+
+   // Export Y for validity testing
+   for (int i = 0; i < N; i++)
+      out_avx << Y[i] << " ";
+   out_avx << "\n";
+   cout << "done" << endl;
+
 }
 
 int main(int argc, char** argv) {
+   // Output file
+   out_avx.open("avx_results.txt", ios::out);
+
    // get the current time, for benchmarking
    auto StartTime = std::chrono::high_resolution_clock::now();
 
@@ -45,10 +111,15 @@ int main(int argc, char** argv) {
    }
    auto FinishInitialization = std::chrono::high_resolution_clock::now();
 
+
    // Call the eigensolver
    EigensolverInfo Info = eigenvalues_arpack(N, 100);
 
    auto FinishTime = std::chrono::high_resolution_clock::now();
+
+
+   // Close file
+   out_avx.close();
 
    auto InitializationTime = std::chrono::duration_cast<std::chrono::microseconds>(FinishInitialization - StartTime);
    auto TotalTime = std::chrono::duration_cast<std::chrono::microseconds>(FinishTime - StartTime);
