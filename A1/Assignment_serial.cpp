@@ -8,6 +8,8 @@
 #include <iomanip>
 #include <fstream>
 
+#define FILE_DUMP 0 // Should this program write results to a file?
+
 using namespace std;
 
 // global variables to store the matrix
@@ -16,6 +18,30 @@ ofstream out_serial;
 double* M = nullptr;
 int N = 0;
 
+// implementation of the matrix-vector multiply function
+void MatrixVectorMultiply(double* Y, const double* X)
+{
+   for (int i = 0; i < N; ++i)
+   {
+      double y = 0;
+      for (int j = 0; j < N; ++j)
+      {
+         y += M[i*N+j] * X[j];
+         //std::cout << "y += " << M[i*N+j] << " * "<< X[j] << std::endl;
+      }
+      Y[i] = y;
+   }
+
+   // Export Y to check validity
+   #if FILE_DUMP
+   for (int i = 0; i < N; i++)
+      out_serial << Y[i] << " ";
+   out_serial << "\n";
+   #endif
+
+}
+
+/*
 void print_matrix() {
    for (int i = 0; i < N; i++) {
       for (int j = 0; j < N; j++) {
@@ -35,33 +61,16 @@ void print_matrix(double* y) {
    }
    std::cout << std::endl;
 }
+*/
 
-
-// implementation of the matrix-vector multiply function
-void MatrixVectorMultiply(double* Y, const double* X)
-{
-   for (int i = 0; i < N; ++i)
-   {
-      double y = 0;
-      for (int j = 0; j < N; ++j)
-      {
-         y += M[i*N+j] * X[j];
-         //std::cout << "y += " << M[i*N+j] << " * "<< X[j] << std::endl;
-      }
-      Y[i] = y;
-   }
-
-   // Export Y to check validity
-  for (int i = 0; i < N; i++)
-      out_serial << Y[i] << " ";
-   out_serial << "\n";
-
-}
 
 int main(int argc, char** argv)
 {
    // Output file
+   #if FILE_DUMP
    out_serial.open("serial_results.txt", ios::out );
+   #endif
+
    // get the current time, for benchmarking
    auto StartTime = std::chrono::high_resolution_clock::now();
 
@@ -92,7 +101,7 @@ int main(int argc, char** argv)
       }
    }
 
- // print_matrix(M);
+   //print_matrix(M);
 
    auto FinishInitialization = std::chrono::high_resolution_clock::now();
 
@@ -102,7 +111,9 @@ int main(int argc, char** argv)
    auto FinishTime = std::chrono::high_resolution_clock::now();
 
    // Close file
+   #if FILE_DUMP
    out_serial.close();
+   #endif
 
    auto InitializationTime = std::chrono::duration_cast<std::chrono::microseconds>(FinishInitialization - StartTime);
    auto TotalTime = std::chrono::duration_cast<std::chrono::microseconds>(FinishTime - StartTime);

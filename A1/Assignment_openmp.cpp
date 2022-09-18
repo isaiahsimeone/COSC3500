@@ -1,19 +1,57 @@
 #include <string>
 #include <iostream>
 #include <iomanip>
+#include <cstring>
+#include <iostream>
+#include <fstream>
+#include <omp.h>
+
+#include <immintrin.h>
 
 #include "eigensolver.h"
 #include "randutil.h"
 
+#define FILE_DUMP 0 // Should this program write results to a file?
+
+using namespace std;
+
 /* Global variables to store the matrix */
 double* M = nullptr;
 int N = 0;
+// Output file to check validity of results
+ofstream out_openmp;
 
 void MatrixVectorMultiply(double* Y, const double* X) {
-    // Do OpenMP trix here
+   // Do OpenMP trix here
+
+   memset(Y, 0L, sizeof(double) * N);
+
+   #pragma omp parallel for
+   for (int i = 0; i < N; ++i)
+   {
+      //cout << "Hello, this is thread #" << omp_get_thread_num() << endl;
+      for (int j = 0; j < N; ++j)
+      {
+         Y[i] += M[i*N+j] * X[j];
+         //std::cout << "y += " << M[i*N+j] << " * "<< X[j] << std::endl;
+      }
+      //Y[i] = y;
+   }
+
+   // Export Y for validity testing
+   #if FILE_DUMP
+   for (int i = 0; i < N; i++)
+      out_openmp << Y[i] << " ";
+   out_openmp << "\n";
+   #endif
 }
 
 int main(int argc, char** argv) {
+   // Output file
+   #if FILE_DUMP
+   out_openmp.open("openmp_results.txt", ios::out);
+   #endif
+
    // get the current time, for benchmarking
    auto StartTime = std::chrono::high_resolution_clock::now();
 
@@ -27,6 +65,8 @@ int main(int argc, char** argv) {
 
    // Allocate memory for the matrix
    M = static_cast<double*>(malloc(N*N*sizeof(double)));
+
+   //print_matrix(M);
 
    // seed the random number generator to a known state
    randutil::seed(4);  // The standard random number.  https://xkcd.com/221/
@@ -49,6 +89,11 @@ int main(int argc, char** argv) {
    EigensolverInfo Info = eigenvalues_arpack(N, 100);
 
    auto FinishTime = std::chrono::high_resolution_clock::now();
+
+   // Close file
+   #if FILE_DUMP
+   out_openmp.close();
+   #endif
 
    auto InitializationTime = std::chrono::duration_cast<std::chrono::microseconds>(FinishInitialization - StartTime);
    auto TotalTime = std::chrono::duration_cast<std::chrono::microseconds>(FinishTime - StartTime);

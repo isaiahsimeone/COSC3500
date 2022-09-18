@@ -9,12 +9,15 @@
 
 #include "eigensolver.h"
 #include "randutil.h"
+
+#define FILE_DUMP 0 // Should this program write results to a file?
+
 using namespace std;
 
 /* Global variables to store the matrix */
 double* M = nullptr;
 int N = 0;
-// For outputting file
+// Output file to check validity of results
 ofstream out_avx;
 
 void MatrixVectorMultiply(double* Y, const double* X) {
@@ -34,20 +37,20 @@ void MatrixVectorMultiply(double* Y, const double* X) {
          __m256d matcolumn = *((__m256d*)(M + i * N + j));
 
          /* Multiply matrix column by scalar (vector element) */
-         // Product = M[i*N+j] * X[i] four doubles at a time
+         // Product = M[i*N+(j..)] * X[i] four doubles at a time
          __m256d product = _mm256_mul_pd(matcolumn, scalar);
 
          /* Store the result in Y. Four doubles from index j will be populated */
-         // Result = Y[j] + product
+         // Result = Y[(j..)] + product
          __m256d result = _mm256_add_pd(_mm256_load_pd(Y + j), product);
 
-         // Y[j] += result
+         // Y[(j..)] += result
          _mm256_storeu_pd(Y + j, result);
       }
 
       asm volatile("#---- AVX INSTRUCTIONS END HERE ----");
 
-      /* If N % 4 != 0, there will be left over's. We just do this serially */
+      /* If N % 4 != 0, there will be left over's. We just deal with these serially */
       while (j < N) {
           Y[j] += M[i * N + j] * X[i];
           j++;
@@ -69,16 +72,19 @@ void MatrixVectorMultiply(double* Y, const double* X) {
    */
 
    // Export Y for validity testing
+   #if FILE_DUMP
    for (int i = 0; i < N; i++)
       out_avx << Y[i] << " ";
    out_avx << "\n";
    cout << "done" << endl;
-
+   #endif
 }
 
 int main(int argc, char** argv) {
    // Output file
+   #if FILE_DUMP
    out_avx.open("avx_results.txt", ios::out);
+   #endif
 
    // get the current time, for benchmarking
    auto StartTime = std::chrono::high_resolution_clock::now();
@@ -119,7 +125,9 @@ int main(int argc, char** argv) {
 
 
    // Close file
+   #if FILE_DUMP
    out_avx.close();
+   #endif
 
    auto InitializationTime = std::chrono::duration_cast<std::chrono::microseconds>(FinishInitialization - StartTime);
    auto TotalTime = std::chrono::duration_cast<std::chrono::microseconds>(FinishTime - StartTime);
