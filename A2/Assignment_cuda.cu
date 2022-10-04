@@ -1,5 +1,5 @@
 // COSC3500, Semester 2, 2022
-// Main file - serial version
+// Main file - CUDA version
 
 #include "eigensolver.h"
 #include "randutil.h"
@@ -14,7 +14,7 @@ using namespace std;
 
 // global variables to store the matrix
 
-ofstream out_serial;
+ofstream out_cuda;
 double* M = nullptr;
 int N = 0;
 
@@ -35,8 +35,8 @@ void MatrixVectorMultiply(double* Y, const double* X)
    // Export Y to check validity
    #if FILE_DUMP
    for (int i = 0; i < N; i++)
-      out_serial << Y[i] << " ";
-   out_serial << "\n";
+      out_cuda << Y[i] << " ";
+   out_cuda << "\n";
    #endif
 
 }
@@ -46,7 +46,7 @@ int main(int argc, char** argv)
 {
    // Output file
    #if FILE_DUMP
-   out_serial.open("serial_results.txt", ios::out );
+   out_cuda.open("serial_results.txt", ios::out );
    #endif
 
    // get the current time, for benchmarking
@@ -90,7 +90,7 @@ int main(int argc, char** argv)
 
    // Close file
    #if FILE_DUMP
-   out_serial.close();
+   out_cuda.close();
    #endif
 
    auto InitializationTime = std::chrono::duration_cast<std::chrono::microseconds>(FinishInitialization - StartTime);
