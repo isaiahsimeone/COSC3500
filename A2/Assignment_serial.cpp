@@ -8,7 +8,7 @@
 #include <iomanip>
 #include <fstream>
 
-#define FILE_DUMP 0 // Should this program write results to a file?
+#define FILE_DUMP 1 // Should this program write results to a file?
 
 using namespace std;
 

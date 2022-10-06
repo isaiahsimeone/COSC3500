@@ -14,52 +14,70 @@
 using namespace std;
 
 // global variables to store the matrix
+
+ofstream out_mpi;
 double* M = nullptr;
 int N = 0;
-ofstream out_mpi;
-// MPI variables
-int world_size, my_rank;
+int world_size;
+
+// MPI process variables
+int my_rank;
+double* my_X;
 
 // implementation of the matrix-vector multiply function
 void MatrixVectorMultiply(double* Y, const double* X)
 {
 
-   /* Scatter matrix rows to processes */
-   //MPI_Scatter(...)
+   MPI_Barrier(MPI_COMM_WORLD); 
 
-    // do MPI trix here
-    for (int i = 0; i < N; ++i)
-    {
-        double y = 0;
-        for (int j = 0; j < N; ++j)
-        {
-            y += M[i*N+j] * X[j];
-        }
-        Y[i] = y;
-    }
+   for (int i = 0; i < N; i++) {
+      double y = 0;
+      for (int j = 0; j < N; j++) {
+         y += M[i*N + j] * X[j];
+      }
+      Y[i] = y;
+   }
+
+   MPI_Barrier(MPI_COMM_WORLD);
+
+   // We can split the range of i as we did below
+   // Then, we just need to synchronise y with the root proc
+
+
+
+
+   /*
+   for (int i = (N/world_size) * my_rank; i < (N/world_size) * (my_rank + 1) - 1; i++) {
+      double y = 0;
+      for (int j = 0; j < N; j++) {
+         y += M[i * N + j] * X[j];
+      }
+      Y[i] = y;
+   }
+   */
 
    // Export Y to check validity
    #if FILE_DUMP
-   for (int i = 0; i < N; i++)
-      out_mpi << Y[i] << " ";
-   out_mpi << "\n";
+   if (my_rank == 0) {
+      for (int i = 0; i < N; i++)
+         out_mpi << Y[i] << " ";
+      out_mpi << "\n";
+   }
    #endif
 
 }
 
-
 int main(int argc, char** argv)
 {
+
    MPI_Init(&argc, &argv);
-   
    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
-   printf("MPI launched with %d processors\n", world_size);
-
    // Output file
    #if FILE_DUMP
-   out_mpi.open("mpi_results.txt", ios::out );
+   if (my_rank == 0)
+      out_mpi.open("mpi_results.txt", ios::out );
    #endif
 
    // get the current time, for benchmarking
@@ -91,24 +109,26 @@ int main(int argc, char** argv)
          M[i*N + j] = M[j*N + i] = randutil::randn();
       }
    }
-
-   //print_matrix(M);
+ 
 
    auto FinishInitialization = std::chrono::high_resolution_clock::now();
 
    // Call the eigensolver
    EigensolverInfo Info = eigenvalues_arpack(N, 100);
 
+   MPI_Barrier(MPI_COMM_WORLD);
+
    auto FinishTime = std::chrono::high_resolution_clock::now();
 
    // Close file
    #if FILE_DUMP
-   out_mpi.close();
+   if (my_rank == 0)
+      out_mpi.close();
    #endif
 
    auto InitializationTime = std::chrono::duration_cast<std::chrono::microseconds>(FinishInitialization - StartTime);
    auto TotalTime = std::chrono::duration_cast<std::chrono::microseconds>(FinishTime - StartTime);
-
+   std::cout << "Report from proc with rank " << my_rank << "\n"; 
    std::cout << "Obtained " << Info.Eigenvalues.size() << " eigenvalues.\n";
    std::cout << "The largest eigenvalue is: " << std::setw(16) << std::setprecision(12) << Info.Eigenvalues.back() << '\n';
    std::cout << "Total time:                             " << std::setw(12) << TotalTime.count() << " us\n";
@@ -116,12 +136,12 @@ int main(int argc, char** argv)
    std::cout << "Time spent in eigensolver:              " << std::setw(12) << Info.TimeInEigensolver.count() << " us\n";
    std::cout << "   Of which the multiply function used: " << std::setw(12) << Info.TimeInMultiply.count() << " us\n";
    std::cout << "   And the eigensolver library used:    " << std::setw(12) << (Info.TimeInEigensolver - Info.TimeInMultiply).count() << " us\n";
-   std::cout << "Total serial (initialization + solver): " << std::setw(12) << (TotalTime - Info.TimeInMultiply).count() << " us\n";
+   std::cout << "Total mpi (initialization + solver): " << std::setw(12) << (TotalTime - Info.TimeInMultiply).count() << " us\n";
    std::cout << "Number of matrix-vector multiplies:     " << std::setw(12) << Info.NumMultiplies << '\n';
    std::cout << "Time per matrix-vector multiplication:  " << std::setw(12) << (Info.TimeInMultiply / Info.NumMultiplies).count() << " us\n";
 
    // free memory
    free(M);
-
-   MPI_Finalise();
+      
+   MPI_Finalize();
 }
