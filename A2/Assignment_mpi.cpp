@@ -7,20 +7,26 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <mpi.h>
 
-#define FILE_DUMP 0 // Should this program write results to a file?
+#define FILE_DUMP 1 // Should this program write results to a file?
 
 using namespace std;
 
 // global variables to store the matrix
-
-ofstream out_mpi;
 double* M = nullptr;
 int N = 0;
+ofstream out_mpi;
+// MPI variables
+int world_size, my_rank;
 
 // implementation of the matrix-vector multiply function
 void MatrixVectorMultiply(double* Y, const double* X)
 {
+
+   /* Scatter matrix rows to processes */
+   //MPI_Scatter(...)
+
     // do MPI trix here
     for (int i = 0; i < N; ++i)
     {
@@ -44,6 +50,13 @@ void MatrixVectorMultiply(double* Y, const double* X)
 
 int main(int argc, char** argv)
 {
+   MPI_Init(&argc, &argv);
+   
+   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+
+   printf("MPI launched with %d processors\n", world_size);
+
    // Output file
    #if FILE_DUMP
    out_mpi.open("mpi_results.txt", ios::out );
@@ -109,4 +122,6 @@ int main(int argc, char** argv)
 
    // free memory
    free(M);
+
+   MPI_Finalise();
 }

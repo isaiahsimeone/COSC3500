@@ -1,5 +1,5 @@
 #!/bin/bash
-ITERATIONS=1000
+ITERATIONS=400
 TESTCOUNT=$ITERATIONS-4
 
 RED='\033[0;31m'
@@ -33,7 +33,7 @@ echo ""
 
 # Run Serial tests
 echo -e "------------------------"
-echo -e "                 ${YELLOW}Serial${NC} "
+echo -e "                  ${YELLOW}Serial${NC} "
 echo -e "------------------------"
 
 for i in $(seq 4 $ITERATIONS);
@@ -67,7 +67,7 @@ echo ""
 
 # Run mpi tests
 echo -e "------------------------"
-echo -e "                 ${YELLOW}mpi${NC} "
+echo -e "                     ${YELLOW}mpi${NC} "
 echo -e "------------------------"
 
 for i in $(seq 4 $ITERATIONS);
@@ -108,7 +108,7 @@ echo ""
 echo ""
 
 TOTALFAILURES=$FAILURES
-
+"""
 # Compare mpi and serial
 echo -e "------------------------"
 echo -e "        ${YELLOW}Serial & mpi${NC} "
@@ -128,7 +128,7 @@ do
 done;
 echo ""
 echo ""
-
+"""
 TOTALFAILURES=$((TOTALFAILURES+FAILURES))
 
 if [[ $TOTALFAILURES -eq 0 ]]; then

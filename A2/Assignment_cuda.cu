@@ -13,29 +13,80 @@
 using namespace std;
 
 // global variables to store the matrix
-
 ofstream out_cuda;
-double* M = nullptr;
+double* M = 0;
 int N = 0;
+double *xDevice, *yDevice, *mDevice = 0;
+int block_count, thread_count;
+
+/*
+ * Determine whether the parameter is an error. If so,
+ * print the error and abort the program.
+ * git.science.uq.edu.au/cosc3500/cuda/sumarrays-gpu-v1.cu
+ */
+void checkError(cudaError_t e)
+{
+   if (e != cudaSuccess)
+   {
+      std::cerr << "CUDA error: " << int(e) << " : " << cudaGetErrorString(e) << '\n';
+      abort();
+   }
+}
+
+__global__
+void CUDAKernel(double* X, double* Y, double* M, int N) {
+
+   int idx = blockDim.x  * blockIdx.x + threadIdx.x; //+ 1;
+
+   if (idx >= N)
+      return ;
+
+   double y = 0;
+   // Each CUDA thread computes a whole matrix row
+   for (int i = 0; i < N; ++i)
+      y += M[i * N + idx] * X[i];
+
+   Y[idx] = y;
+
+   //printf("y = %d\n", y);
+   
+   /*
+   //for (int i = 0; i < N; ++i)
+   //{
+      int index = blockDim.x * blockIdx.x + threadIdx.x; // CHANGE
+      if (index >= N)
+         return ;
+      //printf("index = %d\n", index);
+      double y = 0;
+      for (int i = 0; i < N; ++i)
+      {
+         y += M[i * N + index] * X[i];
+         //y += M[i*N+j] * X[j];
+         //std::cout << "y += " << M[i*N+j] << " * "<< X[j] << std::endl;
+      }
+      Y[index] = y; //Y[i] = y;
+   //}
+   */
+}
+
 
 // implementation of the matrix-vector multiply function
 void MatrixVectorMultiply(double* Y, const double* X)
 {
-    // do CUDA trix here
-    for (int i = 0; i < N; ++i)
-    {
-        double y = 0;
-        for (int j = 0; j < N; ++j)
-        {
-            y += M[i*N+j] * X[j];
-        }
-        Y[i] = y;
-    }
+   //printf("MatVecMult()\n");
+   //cudaMemcpy ( void* dst, const void* src, size_t count, cudaMemcpyKind kind )
+
+   //checkError(cudaMemcpy(mDevice, M, N * N * sizeof(double), cudaMemcpyHostToDevice));
+   checkError(cudaMemcpy(xDevice, X, N * sizeof(double), cudaMemcpyHostToDevice));
+   // Invoke the CUDA kernel
+   CUDAKernel<<<block_count, thread_count>>>(xDevice, yDevice, mDevice, N);
+   // Copy Y & X from device
+   checkError(cudaMemcpy(Y, yDevice, N * sizeof(double), cudaMemcpyDeviceToHost));
 
    // Export Y to check validity
    #if FILE_DUMP
    for (int i = 0; i < N; i++)
-      out_cuda << Y[i] << " ";
+       out_cuda << Y[i] << " ";
    out_cuda << "\n";
    #endif
 
@@ -46,7 +97,7 @@ int main(int argc, char** argv)
 {
    // Output file
    #if FILE_DUMP
-   out_cuda.open("serial_results.txt", ios::out );
+   out_cuda.open("cuda_results.txt", ios::out );
    #endif
 
    // get the current time, for benchmarking
@@ -59,6 +110,16 @@ int main(int argc, char** argv)
       return 1;
    }
    N = std::stoi(argv[1]);
+
+   // Allocate CUDA memory
+   printf("Attempting to allocate %ld GB of VRAM\n", sizeof(double) * (N + N + N*N) / 1000000000);
+   checkError(cudaMalloc(&xDevice, N * sizeof(double)));
+   checkError(cudaMalloc(&yDevice, N * sizeof(double)));
+   checkError(cudaMalloc(&mDevice, N * N * sizeof(double)));
+   printf("OK\n");
+
+   thread_count = 128;
+   block_count = floor(N / thread_count) + 1;
 
    // Allocate memory for the matrix
    M = static_cast<double*>(malloc(N*N*sizeof(double)));
@@ -78,7 +139,7 @@ int main(int argc, char** argv)
          M[i*N + j] = M[j*N + i] = randutil::randn();
       }
    }
-
+   checkError(cudaMemcpy(mDevice, M, N * N * sizeof(double), cudaMemcpyHostToDevice));
    //print_matrix(M);
 
    auto FinishInitialization = std::chrono::high_resolution_clock::now();
