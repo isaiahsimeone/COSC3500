@@ -1,5 +1,5 @@
 #!/bin/bash
-ITERATIONS=400
+ITERATIONS=50
 TESTCOUNT=$ITERATIONS-4
 
 RED='\033[0;31m'
@@ -47,7 +47,7 @@ done;
 echo ""
 echo ""
 
-
+"""
 # Run CUDA tests
 echo -e "------------------------"
 echo -e "                    ${YELLOW}CUDA${NC} "
@@ -63,7 +63,7 @@ do
 done;
 echo ""
 echo ""
-
+"""
 
 # Run mpi tests
 echo -e "------------------------"
@@ -72,7 +72,7 @@ echo -e "------------------------"
 
 for i in $(seq 4 $ITERATIONS);
 do
-    ./Assignment_mpi $i 1>/dev/null
+    mpiexec -n 2 ./Assignment_mpi $i 1>/dev/null
     cp mpi_results.txt test_output/mpi_${i}.txt
     if [[ $i -le $ITERATIONS ]]; then
         echo -en "${clr_eol}$i/${ITERATIONS} complete\r"
@@ -108,7 +108,7 @@ echo ""
 echo ""
 
 TOTALFAILURES=$FAILURES
-"""
+
 # Compare mpi and serial
 echo -e "------------------------"
 echo -e "        ${YELLOW}Serial & mpi${NC} "
@@ -128,7 +128,7 @@ do
 done;
 echo ""
 echo ""
-"""
+
 TOTALFAILURES=$((TOTALFAILURES+FAILURES))
 
 if [[ $TOTALFAILURES -eq 0 ]]; then

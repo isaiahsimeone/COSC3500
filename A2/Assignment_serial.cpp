@@ -21,6 +21,7 @@ int N = 0;
 // implementation of the matrix-vector multiply function
 void MatrixVectorMultiply(double* Y, const double* X)
 {
+
    for (int i = 0; i < N; ++i)
    {
       double y = 0;
@@ -31,6 +32,7 @@ void MatrixVectorMultiply(double* Y, const double* X)
       }
       Y[i] = y;
    }
+
 
    // Export Y to check validity
    #if FILE_DUMP
