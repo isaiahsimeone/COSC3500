@@ -54,6 +54,16 @@ int await_signal() {
    return signal;
 }
 
+/*
+ * This function is run by all non-root MPI processes.
+ * Each of these processes are allocated a segment of
+ * the matrix M. Once the root process has a job available
+ * (See MatrixVectorMultiply()), MPI slaves will become active,
+ * receive X and compute the matrix vector multiplication for
+ * their respective segement of Matrix M
+ *
+ * Exits only on exception or when slave_signal(SIGNAL_DIE) is called.
+ */
 void subtask_servicer() {
    double* sub_M = new double[N * N / slave_count]{};
    double* my_X = new double[N]{};
