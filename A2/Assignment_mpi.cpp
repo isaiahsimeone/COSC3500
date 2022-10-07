@@ -11,13 +11,11 @@
 #include <unistd.h>
 #include <assert.h>
 
-         int microsecond = 1000000; // This can go
-
-#define FILE_DUMP             1 // Should this program write results to a file?
+#define FILE_DUMP             0 // Should this program write results to a file?
 #define PROC_ROOT             0
+
 #define SIGNAL_SUBTASK_READY  0xbeef
 #define SIGNAL_DIE            0xd1e
-#define SIGNAL_NOTHING        0x1
 
 #define TAG_SIGNAL            0x2
 #define TAG_GET_RESULTS       0x3
@@ -36,9 +34,11 @@ int world_size;
 int slave_count;
 int my_rank;
 
+int rows_per_slave;
+int elements_per_slave;
 
 /*
- * Send a 'signal' to all slaves.
+ * Send the specified 'signal' to all slaves.
  */
 void slave_signal(int signal) {
    for (int i = 1; i < world_size; i++)
@@ -65,14 +65,12 @@ int await_signal() {
  * Exits only on exception or when slave_signal(SIGNAL_DIE) is called.
  */
 void subtask_servicer() {
-   double* sub_M = new double[N * N / slave_count]{};
+   double* sub_M = new double[elements_per_slave]{};
    double* my_X = new double[N]{};
-   double* my_Y = new double[N / slave_count]{};
+   double* my_Y = new double[rows_per_slave]{};
 
    /* Get slave sub_M from root process */
-   MPI_Recv(sub_M, N * N / slave_count, MPI_DOUBLE, PROC_ROOT, TAG_DISTRIBUTE_M, MPI_COMM_WORLD, nullptr);
-
-   printf("I (%d) am ready.\n", my_rank);
+   MPI_Recv(sub_M, elements_per_slave, MPI_DOUBLE, PROC_ROOT, TAG_DISTRIBUTE_M, MPI_COMM_WORLD, nullptr);
 
    while (await_signal() != SIGNAL_DIE) {
       //printf("I (%d) have work available\n", my_rank);
@@ -80,8 +78,8 @@ void subtask_servicer() {
       /* Get X */
       MPI_Recv(my_X, N, MPI_DOUBLE, PROC_ROOT, TAG_ACQUIRE_X, MPI_COMM_WORLD, nullptr);
 
-      /* Do the work */
-      for (int i = 0; i < N / slave_count; i++) {
+      /* Do the work, put the result in my_Y */
+      for (int i = 0; i < rows_per_slave; i++) {
          double y = 0;
          for (int j = 0; j < N; j++) {
             y += sub_M[i * N + j] * my_X[j];
@@ -90,7 +88,7 @@ void subtask_servicer() {
       }
    
       /* Send the results back */
-      MPI_Send(my_Y, N / slave_count, MPI_DOUBLE, PROC_ROOT, TAG_GET_RESULTS, MPI_COMM_WORLD);
+      MPI_Send(my_Y, rows_per_slave, MPI_DOUBLE, PROC_ROOT, TAG_GET_RESULTS, MPI_COMM_WORLD);
    }
 }
 
@@ -105,17 +103,26 @@ void MatrixVectorMultiply(double* Y, const double* X)
    for (int i = 1; i < world_size; i++)
       MPI_Send(X, N, MPI_DOUBLE, i, TAG_ACQUIRE_X, MPI_COMM_WORLD);
 
-   // This cannot go here. The MPI_Send() call's above 
-   // Block for N > 505. I think this is because some sort
-   // of internal MPI buffer is being filled. Instead,
-   // slaves need to be signaled before sending signaling work.
-   // This way, each slave will be able to read messages (thus
-   // emptying this buffer (if it even exists?))
-   //slave_signal(SIGNAL_SUBTASK_READY);
+   /* 
+    * Are there rows left over that no slaves will service? 
+    * There will be when N % slave_count != 0. The root process
+    * can take care of those last few rows while waiting for the 
+    * slaves to finish
+    */
+   int remaining_rows = N - rows_per_slave * slave_count;
+   int row_offset = rows_per_slave * slave_count;
 
-   /* Get results from slaves */
+   for (int i = 0; i < remaining_rows; i++) {
+      double y = 0;
+      for (int j = 0; j < N; j++) {
+         y += M[N * (row_offset + i) + j] * X[j];
+      }
+      Y[row_offset + i] = y;
+   }
+
+   /* Merge results from the slaves into Y */
    for (int i = 1; i < world_size; i++)
-      MPI_Recv(Y + (N/slave_count) * (i-1), (N/slave_count), MPI_DOUBLE, i, TAG_GET_RESULTS, MPI_COMM_WORLD, nullptr);
+      MPI_Recv(Y + rows_per_slave * (i - 1), rows_per_slave, MPI_DOUBLE, i, TAG_GET_RESULTS, MPI_COMM_WORLD, nullptr);
 }
 
 int main(int argc, char** argv)
@@ -135,17 +142,19 @@ int main(int argc, char** argv)
    }
    N = std::stoi(argv[1]);
 
+   rows_per_slave = floor(N / slave_count);
+   elements_per_slave = N * rows_per_slave;
+
+   if (rows_per_slave * slave_count != N && my_rank == 0) {
+      printf("There will be %d left over rows which root will calculate.\n", N - rows_per_slave * slave_count);
+   }
+
    /* Only root process from here. The slaves just await jobs */
    if (my_rank == PROC_ROOT) {
       // Output file
       #if FILE_DUMP
       out_mpi.open("mpi_results.txt", ios::out );
       #endif
-
-      if (N % slave_count != 0) {
-         std::cerr << "Invalid number of MPI processes\n";
-         return 1;
-      }
       
       // get the current time, for benchmarking
       auto StartTime = std::chrono::high_resolution_clock::now();
@@ -169,12 +178,13 @@ int main(int argc, char** argv)
          }
       }
 
+
       /* Divide up M for the slaves */
       int offset = 0;
       // each slave gets N*N/slave_count rows of M
-      for (int i = 1; i < world_size; i++, offset += N * N / slave_count)
-         MPI_Send(M + offset, N * N / slave_count, MPI_DOUBLE, i, TAG_DISTRIBUTE_M, MPI_COMM_WORLD);
-
+      for (int i = 1; i < world_size; i++, offset += elements_per_slave)
+         MPI_Send(M + offset, elements_per_slave, MPI_DOUBLE, i, TAG_DISTRIBUTE_M, MPI_COMM_WORLD);
+      
       auto FinishInitialization = std::chrono::high_resolution_clock::now();
 
       // Call the eigensolver
