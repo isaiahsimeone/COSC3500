@@ -1,0 +1,28 @@
+----- size = 10 -----
+Time per matrix-vector multiplication:             0 us
+----- size = 20 -----
+Time per matrix-vector multiplication:             0 us
+----- size = 40 -----
+Time per matrix-vector multiplication:             0 us
+----- size = 80 -----
+Time per matrix-vector multiplication:             2 us
+----- size = 160 -----
+Time per matrix-vector multiplication:             9 us
+----- size = 320 -----
+Time per matrix-vector multiplication:            34 us
+----- size = 640 -----
+Time per matrix-vector multiplication:           157 us
+----- size = 1280 -----
+Time per matrix-vector multiplication:           822 us
+----- size = 2000 -----
+Time per matrix-vector multiplication:          3097 us
+----- size = 2500 -----
+Time per matrix-vector multiplication:          4526 us
+----- size = 5000 -----
+Time per matrix-vector multiplication:         15992 us
+----- size = 10000 -----
+Time per matrix-vector multiplication:         59289 us
+----- size = 20000 -----
+Time per matrix-vector multiplication:        233513 us
+----- size = 30000 -----
+Time per matrix-vector multiplication:        513968 us
