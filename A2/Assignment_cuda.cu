@@ -33,54 +33,37 @@ void checkError(cudaError_t e)
    }
 }
 
+/*
+ * Code that runs on the GPU. given a vector X and some segment of M
+ * calculate the vector product sum and put the result in Y
+ */
 __global__
-void CUDAKernel(double* X, double* Y, double* M, int N) {
+void CUDAKernel(double* xDevice, double* yDevice, double* mDevice, int N) {
 
    int idx = blockDim.x  * blockIdx.x + threadIdx.x; //+ 1;
 
-   if (idx >= N)
+   // A matrix of size N is indexed up to N-1
+   if (idx > N-1)
       return ;
 
    double y = 0;
-   // Each CUDA thread computes a whole matrix row
+   // Each CUDA thread deals with a whole matrix row
    for (int i = 0; i < N; ++i)
-      y += M[i * N + idx] * X[i];
+      y += mDevice[i * N + idx] * xDevice[i];
 
-   Y[idx] = y;
-
-   //printf("y = %d\n", y);
-   
-   /*
-   //for (int i = 0; i < N; ++i)
-   //{
-      int index = blockDim.x * blockIdx.x + threadIdx.x; // CHANGE
-      if (index >= N)
-         return ;
-      //printf("index = %d\n", index);
-      double y = 0;
-      for (int i = 0; i < N; ++i)
-      {
-         y += M[i * N + index] * X[i];
-         //y += M[i*N+j] * X[j];
-         //std::cout << "y += " << M[i*N+j] << " * "<< X[j] << std::endl;
-      }
-      Y[index] = y; //Y[i] = y;
-   //}
-   */
+   yDevice[idx] = y;
 }
 
 
 // implementation of the matrix-vector multiply function
 void MatrixVectorMultiply(double* Y, const double* X)
 {
-   //printf("MatVecMult()\n");
-   //cudaMemcpy ( void* dst, const void* src, size_t count, cudaMemcpyKind kind )
-
-   //checkError(cudaMemcpy(mDevice, M, N * N * sizeof(double), cudaMemcpyHostToDevice));
+   // Copy X to the device
    checkError(cudaMemcpy(xDevice, X, N * sizeof(double), cudaMemcpyHostToDevice));
    // Invoke the CUDA kernel
    CUDAKernel<<<block_count, thread_count>>>(xDevice, yDevice, mDevice, N);
-   // Copy Y & X from device
+   // checkError(cudaDeviceSynchronize()); // Not required 
+   // Copy Y from device
    checkError(cudaMemcpy(Y, yDevice, N * sizeof(double), cudaMemcpyDeviceToHost));
 
    // Export Y to check validity
@@ -89,7 +72,6 @@ void MatrixVectorMultiply(double* Y, const double* X)
        out_cuda << Y[i] << " ";
    out_cuda << "\n";
    #endif
-
 }
 
 
@@ -118,7 +100,8 @@ int main(int argc, char** argv)
    checkError(cudaMalloc(&mDevice, N * N * sizeof(double)));
    printf("OK\n");
 
-   thread_count = 128;
+   // Number of threads and blocks. A thread count of 128 performed best.
+   thread_count = 16;
    block_count = floor(N / thread_count) + 1;
 
    // Allocate memory for the matrix
@@ -139,8 +122,9 @@ int main(int argc, char** argv)
          M[i*N + j] = M[j*N + i] = randutil::randn();
       }
    }
+
+   // Since M does not change, it can be copied to the device now
    checkError(cudaMemcpy(mDevice, M, N * N * sizeof(double), cudaMemcpyHostToDevice));
-   //print_matrix(M);
 
    auto FinishInitialization = std::chrono::high_resolution_clock::now();
 
@@ -164,7 +148,7 @@ int main(int argc, char** argv)
    std::cout << "Time spent in eigensolver:              " << std::setw(12) << Info.TimeInEigensolver.count() << " us\n";
    std::cout << "   Of which the multiply function used: " << std::setw(12) << Info.TimeInMultiply.count() << " us\n";
    std::cout << "   And the eigensolver library used:    " << std::setw(12) << (Info.TimeInEigensolver - Info.TimeInMultiply).count() << " us\n";
-   std::cout << "Total serial (initialization + solver): " << std::setw(12) << (TotalTime - Info.TimeInMultiply).count() << " us\n";
+   std::cout << "Total CUDA (initialization + solver):   " << std::setw(12) << (TotalTime - Info.TimeInMultiply).count() << " us\n";
    std::cout << "Number of matrix-vector multiplies:     " << std::setw(12) << Info.NumMultiplies << '\n';
    std::cout << "Time per matrix-vector multiplication:  " << std::setw(12) << (Info.TimeInMultiply / Info.NumMultiplies).count() << " us\n";
 

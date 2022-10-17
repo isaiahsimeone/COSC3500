@@ -8,10 +8,7 @@
 #include <iomanip>
 #include <fstream>
 #include <mpi.h>
-#include <unistd.h>
-#include <assert.h>
 
-#define FILE_DUMP             0 // Should this program write results to a file?
 #define PROC_ROOT             0
 
 #define SIGNAL_SUBTASK_READY  0xbeef
@@ -58,9 +55,10 @@ int await_signal() {
  * This function is run by all non-root MPI processes.
  * Each of these processes are allocated a segment of
  * the matrix M. Once the root process has a job available
- * (See MatrixVectorMultiply()), MPI slaves will become active,
- * receive X and compute the matrix vector multiplication for
- * their respective segement of Matrix M
+ * (See MatrixVectorMultiply()), An MPI message will be sent.
+ * This causes the slaves to become active, receive
+ * X and compute the matrix vector multiplication for
+ * their respective segement of Matrix M (a collection of rows of M)
  *
  * Exits only on exception or when slave_signal(SIGNAL_DIE) is called.
  */
@@ -81,13 +79,12 @@ void subtask_servicer() {
       /* Do the work, put the result in my_Y */
       for (int i = 0; i < rows_per_slave; i++) {
          double y = 0;
-         for (int j = 0; j < N; j++) {
+         for (int j = 0; j < N; j++)
             y += sub_M[i * N + j] * my_X[j];
-         }
          my_Y[i] = y;
       }
    
-      /* Send the results back */
+      /* Send the results to the root process */
       MPI_Send(my_Y, rows_per_slave, MPI_DOUBLE, PROC_ROOT, TAG_GET_RESULTS, MPI_COMM_WORLD);
    }
 }
@@ -107,20 +104,21 @@ void MatrixVectorMultiply(double* Y, const double* X)
     * Are there rows left over that no slaves will service? 
     * There will be when N % slave_count != 0. The root process
     * can take care of those last few rows while waiting for the 
-    * slaves to finish
+    * slaves to finish. The number of remaining rows will always
+    * be less than the number of rows allocated to the slaves.
+    * So theoretically, root should never hold up the program
     */
    int remaining_rows = N - rows_per_slave * slave_count;
    int row_offset = rows_per_slave * slave_count;
 
    for (int i = 0; i < remaining_rows; i++) {
       double y = 0;
-      for (int j = 0; j < N; j++) {
+      for (int j = 0; j < N; j++)
          y += M[N * (row_offset + i) + j] * X[j];
-      }
       Y[row_offset + i] = y;
    }
 
-   /* Merge results from the slaves into Y */
+   /* Merge results from all slaves into Y */
    for (int i = 1; i < world_size; i++)
       MPI_Recv(Y + rows_per_slave * (i - 1), rows_per_slave, MPI_DOUBLE, i, TAG_GET_RESULTS, MPI_COMM_WORLD, nullptr);
 }
@@ -145,17 +143,16 @@ int main(int argc, char** argv)
    rows_per_slave = floor(N / slave_count);
    elements_per_slave = N * rows_per_slave;
 
-   if (rows_per_slave * slave_count != N && my_rank == 0) {
-      printf("There will be %d left over rows which root will calculate.\n", N - rows_per_slave * slave_count);
-   }
+   //if (rows_per_slave * slave_count != N && my_rank == 0) {
+   //   printf("There will be %d left over rows which root will calculate.\n", N - rows_per_slave * slave_count);
+   //}
+
+   /* slave processes only */
+   if (my_rank != PROC_ROOT)
+      subtask_servicer();
 
    /* Only root process from here. The slaves just await jobs */
    if (my_rank == PROC_ROOT) {
-      // Output file
-      #if FILE_DUMP
-      out_mpi.open("mpi_results.txt", ios::out );
-      #endif
-      
       // get the current time, for benchmarking
       auto StartTime = std::chrono::high_resolution_clock::now();
 
@@ -178,7 +175,6 @@ int main(int argc, char** argv)
          }
       }
 
-
       /* Divide up M for the slaves */
       int offset = 0;
       // each slave gets N*N/slave_count rows of M
@@ -195,11 +191,6 @@ int main(int argc, char** argv)
 
       auto FinishTime = std::chrono::high_resolution_clock::now();
 
-      // Close file
-      #if FILE_DUMP
-      out_mpi.close();
-      #endif
-
       auto InitializationTime = std::chrono::duration_cast<std::chrono::microseconds>(FinishInitialization - StartTime);
       auto TotalTime = std::chrono::duration_cast<std::chrono::microseconds>(FinishTime - StartTime);
       std::cout << "Obtained " << Info.Eigenvalues.size() << " eigenvalues.\n";
@@ -209,7 +200,7 @@ int main(int argc, char** argv)
       std::cout << "Time spent in eigensolver:              " << std::setw(12) << Info.TimeInEigensolver.count() << " us\n";
       std::cout << "   Of which the multiply function used: " << std::setw(12) << Info.TimeInMultiply.count() << " us\n";
       std::cout << "   And the eigensolver library used:    " << std::setw(12) << (Info.TimeInEigensolver - Info.TimeInMultiply).count() << " us\n";
-      std::cout << "Total mpi (initialization + solver): " << std::setw(12) << (TotalTime - Info.TimeInMultiply).count() << " us\n";
+      std::cout << "Total mpi (initialization + solver):    " << std::setw(12) << (TotalTime - Info.TimeInMultiply).count() << " us\n";
       std::cout << "Number of matrix-vector multiplies:     " << std::setw(12) << Info.NumMultiplies << '\n';
       std::cout << "Time per matrix-vector multiplication:  " << std::setw(12) << (Info.TimeInMultiply / Info.NumMultiplies).count() << " us\n";
 
@@ -217,9 +208,6 @@ int main(int argc, char** argv)
       free(M);
    }
 
-   /* slave processes only */
-   if (my_rank != PROC_ROOT)
-      subtask_servicer();
 
    MPI_Finalize();
 }

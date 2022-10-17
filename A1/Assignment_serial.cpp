@@ -29,7 +29,9 @@ void MatrixVectorMultiply(double* Y, const double* X)
          y += M[i*N+j] * X[j];
          //std::cout << "y += " << M[i*N+j] << " * "<< X[j] << std::endl;
       }
-      Y[i] = y;
+	printf("Y[%d] = %d\n", i, y);  
+
+	  Y[i] = y;
    }
 
    // Export Y to check validity
