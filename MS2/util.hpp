@@ -16,5 +16,6 @@ long double frac_long_divide(long, long);
 float       rand_float_range(float, float);
 bool        is_numerical(std::string);
 double      calculate_time_delta(_time_point, _time_point);
+bool        is_power_of_two(int);
 
 #endif /* __UTIL_H_ */
