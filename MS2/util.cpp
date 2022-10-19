@@ -41,3 +41,18 @@ bool is_numerical(std::string s) {
 bool is_power_of_two(int n) {
     return (n != 0) && (n & (n-1)) == 0;
 }
+
+/*
+ * Write an amber coloured warning message to stderr
+ */
+void msg_warn(std::string msg) {
+    std::cerr << COLOUR_AMBER << msg << COLOUR_RESET << std::endl;
+}  
+
+/*
+ * Write a red coloured error message to stderr and abort the program
+ */
+void msg_err_exit(std::string msg) {
+    std::cerr << COLOUR_RED << msg << COLOUR_RESET << std::endl;
+    abort();
+}

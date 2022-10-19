@@ -11,25 +11,23 @@
 
 class Lattice {
     public:
+        int*                lattice;
+        int                 dimension;
         std::pair<int,int>  get_random_coords();
+        unsigned long long  get_seed();
         int                 get_cell(int, int);
         void                randomise(std::string);
-        int                 get_width();
-        int                 get_height();
-        void                print();
+        int                 get_dimension();
         int                 calculate_energy(int, int);
-        void                set_cell(int, int, int);
         void                switch_cell(int, int);
         float               get_temperature();
         void                write_to_bitmap(std::string);
         void                dump_information(FILE*, long);
-                            Lattice(int, int, float);
+                            Lattice(int, float);
                             ~Lattice();
     private:
         void                allocate();
-        int                 width;
-        int                 height;
-        char**              lattice;
+        unsigned long long  seed;
         float               temperature;
 };
 

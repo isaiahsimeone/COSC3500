@@ -3,10 +3,10 @@
 /*
  * Initialise a Lattice object
  */
-Lattice::Lattice(int width, int height, float temperature) {
-    this->width = width;
-    this->height = height;
+Lattice::Lattice(int dimension, float temperature) {
+    this->dimension = dimension;
     this->temperature = temperature;
+    this->seed = 3500;
     allocate();
 }
 
@@ -14,8 +14,6 @@ Lattice::Lattice(int width, int height, float temperature) {
  * Deallocate the lattice object
  */
 Lattice::~Lattice() {
-    for (int i = 0; i < this->height; i++)
-        delete[] lattice[i];
     delete[] lattice;
 }
 
@@ -23,61 +21,48 @@ Lattice::~Lattice() {
  * Return the value at the cell specified by coordinates
  */
 int Lattice::get_cell(int x, int y) {
-    if (y >= height || y < 0)
+    if (y >= dimension || y < 0)
         return 0;
-    if (x >= width || x < 0)
+    if (x >= dimension || x < 0)
         return 0;
-    return lattice[y][x];
-}
-
-/*
- * Set the cell at the specified coordinates with
- * the specified value
- */
-void Lattice::set_cell(int x, int y, int val) {
-    assert(x >= 0 && x < width);
-    assert(y >= 0 && y < height);
-
-    lattice[y][x] = val;
+    return lattice[x * dimension + y];
 }
 
 /*
  * Flip the sign of the cell at the specified coordinates
  */
 void Lattice::switch_cell(int x, int y) {
-    assert(x >= 0 && x < width);
-    assert(y >= 0 && y < height);
+    assert(x >= 0 && x < dimension);
+    assert(y >= 0 && y < dimension);
 
-    lattice[y][x] *= -1;
+    lattice[x * dimension + y] *= -1;
 }
 
 /*
  * Allocate the lattice array with the specified dimensions
  */
 void Lattice::allocate() {
-    lattice = new char*[height]();
-    for (int i = 0; i < height; i++)
-        lattice[i] = new char[width]();
+    lattice = new int[dimension * dimension]();
 }
 
 /*
  * Randomise lattice with +1's and -1's
  */
 void Lattice::randomise(std::string seed_str = "COSC3500") {
-    unsigned int seed = 0;
+    unsigned int numerical_seed = 0;
 
     /* Numerical seed provided or set seed as string hash */
     if (is_numerical(seed_str))
-        seed = std::stoi(seed_str);
+        numerical_seed = std::stoi(seed_str);
     else
-        seed = std::hash<std::string>()(seed_str);
+        numerical_seed = std::hash<std::string>()(seed_str);
 
     /* Initialise */
-    srand(seed);
+    srand(numerical_seed);
+    this->seed = numerical_seed;
     
-    for (int i = 0; i < height; i++)
-        for (int j = 0; j < width; j++)
-            lattice[i][j] = (rand() % 2 == 0 ? 1 : -1);
+    for (int i = 0; i < dimension * dimension; i++)
+        lattice[i] = (rand() % 2 == 0 ? 1 : -1);
 }
 
 /*
@@ -87,16 +72,15 @@ void Lattice::randomise(std::string seed_str = "COSC3500") {
 void Lattice::dump_information(FILE* f, long iteration) {
     double average_spin = 0;
 
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
-            if (lattice[i][j] == -1) {
-                average_spin++;
-            } else {
-                average_spin--;
-            }
-        }
+    for (int i = 0; i < dimension * dimension; i++) {
+        if (lattice[i] == -1)
+            average_spin++;
+        else
+            average_spin--;
     }
-    average_spin /= width * height;
+
+
+    average_spin /= dimension * dimension;
 
     fprintf(f, "%ld,%lf\n", iteration, average_spin);
 }
@@ -115,37 +99,18 @@ int Lattice::calculate_energy(int x, int y) {
  * lattice height & width
  */
 std::pair<int, int> Lattice::get_random_coords() {
-    int rand_x = 0 + (rand() % static_cast<int>(width));
-    int rand_y = 0 + (rand() % static_cast<int>(height));
+    int rand_x = 0 + (rand() % static_cast<int>(dimension));
+    int rand_y = 0 + (rand() % static_cast<int>(dimension));
     
     return std::make_pair(rand_x, rand_y);
 }
 
-/*
- * Print the latitice to stdout replacing -1 with 'O', 
- * and +1 with a space
- */
-void Lattice::print() {
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
-            std::cout << (lattice[i][j] == -1 ? '0' : ' ');
-        }
-        std::cout << std::endl;
-    }
-}
 
 /*
  * Return the width of the lattice
  */
-int Lattice::get_width() {
-    return width;
-}
-
-/*
- * Return the height of the lattice
- */
-int Lattice::get_height() {
-    return height;
+int Lattice::get_dimension() {
+    return dimension;
 }
 
 /*
@@ -153,6 +118,10 @@ int Lattice::get_height() {
  */
 float Lattice::get_temperature() {
     return temperature;
+}
+
+unsigned long long Lattice::get_seed() {
+    return seed;
 }
 
 /*
@@ -168,8 +137,8 @@ void Lattice::write_to_bitmap(std::string out_file_name) {
         = {40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 24, 0};
     unsigned char bmp_padding[3] = {0, 0, 0};
 
-    int h = height;
-    int w = width;
+    int h = dimension;
+    int w = dimension;
 
     FILE* out_file = fopen(out_file_name.c_str(), "wb");
     int filesize = BITMAP_HEADER_SZ + 3 * w * h;
