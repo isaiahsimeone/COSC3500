@@ -4,6 +4,7 @@
  * Initialise a Lattice object
  */
 Lattice::Lattice(int dimension, float temperature) {
+    this->lattice = nullptr;
     this->dimension = dimension;
     this->temperature = temperature;
     this->seed = 3500;
@@ -20,22 +21,12 @@ Lattice::~Lattice() {
 /*
  * Return the value at the cell specified by coordinates
  */
-int Lattice::get_cell(int x, int y) {
+int Lattice::get_cell(int x, int y) const {
     if (y >= dimension || y < 0)
         return 0;
     if (x >= dimension || x < 0)
         return 0;
     return lattice[x * dimension + y];
-}
-
-/*
- * Flip the sign of the cell at the specified coordinates
- */
-void Lattice::switch_cell(int x, int y) {
-    assert(x >= 0 && x < dimension);
-    assert(y >= 0 && y < dimension);
-
-    lattice[x * dimension + y] *= -1;
 }
 
 /*
@@ -48,8 +39,8 @@ void Lattice::allocate() {
 /*
  * Randomise lattice with +1's and -1's
  */
-void Lattice::randomise(std::string seed_str = "COSC3500") {
-    unsigned int numerical_seed = 0;
+void Lattice::randomise(const std::string& seed_str = "COSC3500") {
+    unsigned int numerical_seed;
 
     /* Numerical seed provided or set seed as string hash */
     if (is_numerical(seed_str))
@@ -66,10 +57,10 @@ void Lattice::randomise(std::string seed_str = "COSC3500") {
 }
 
 /*
- * Output informtion about the lattice to the specified
+ * Output information about the lattice to the specified
  * file.
  */
-void Lattice::dump_information(FILE* f, long iteration) {
+void Lattice::dump_information(FILE* f, long iteration) const {
     double average_spin = 0;
 
     for (int i = 0; i < dimension * dimension; i++) {
@@ -79,48 +70,31 @@ void Lattice::dump_information(FILE* f, long iteration) {
             average_spin--;
     }
 
-
     average_spin /= dimension * dimension;
 
     fprintf(f, "%ld,%lf\n", iteration, average_spin);
 }
 
-
-/*
- * Calculate the energy of the cell specified by the x,y coordinate pair
- */
-int Lattice::calculate_energy(int x, int y) {
-    return (2 * 1/*J*/ * get_cell(x, y)) * (get_cell(x + 1, y) 
-        + get_cell(x - 1, y) + get_cell(x, y + 1) + get_cell(x, y - 1));
-}
-
-/*
- * Return a pair of random lattice coordinates that are within 
- * lattice height & width
- */
-std::pair<int, int> Lattice::get_random_coords() {
-    int rand_x = 0 + (rand() % static_cast<int>(dimension));
-    int rand_y = 0 + (rand() % static_cast<int>(dimension));
-    
-    return std::make_pair(rand_x, rand_y);
-}
-
-
 /*
  * Return the width of the lattice
  */
-int Lattice::get_dimension() {
+int Lattice::get_dimension() const {
     return dimension;
 }
 
 /*
- * Return the temperature of the lattice
+ * Return the temperature that the lattice was initialised with
  */
-float Lattice::get_temperature() {
+float Lattice::get_temperature() const {
     return temperature;
 }
 
-unsigned long long Lattice::get_seed() {
+
+/*
+ * Return the seed that was used to initialise the lattice
+ * in numerical form (string seeds are lost)
+ */
+unsigned long long Lattice::get_seed() const {
     return seed;
 }
 
@@ -130,7 +104,7 @@ unsigned long long Lattice::get_seed() {
  * stackoverflow.com/questions/2654480
  * /writing-bmp-image-in-pure-c-c-without-other-libraries
  */
-void Lattice::write_to_bitmap(std::string out_file_name) {
+void Lattice::write_to_bitmap(const std::string& out_file_name) const {
     unsigned char bmp_file_header[14] 
         = {'B', 'M', 0, 0, 0, 0, 0, 0, 0, 0, 54, 0, 0, 0};
     unsigned char bmp_info_header[40] 
@@ -143,7 +117,7 @@ void Lattice::write_to_bitmap(std::string out_file_name) {
     FILE* out_file = fopen(out_file_name.c_str(), "wb");
     int filesize = BITMAP_HEADER_SZ + 3 * w * h;
 
-    unsigned char* img = (unsigned char*)malloc(3 * w * h);
+    auto* img = (unsigned char*)malloc(3 * w * h);
     memset(img, 0, sizeof(3 * w * h));
     int colour;
 

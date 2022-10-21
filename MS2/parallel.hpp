@@ -35,9 +35,13 @@ const option long_opts[] = {
 };
 
 /* Prototypes */
-void        usage(char*);
-void        print_progress(double, long, long, long);
+void                    usage(char*);
+void                    print_progress(double, long, long, long);
+__global__ void         evaluate_disjoint_component(int*, const float*, int, float, int);
 
+/*
+ * Check if the specified argument indicates an error with a CUDA function
+ */
 inline void CUDACheckErr(cudaError_t e) {
    if (e != cudaSuccess) {
       std::cerr << "CUDA error: " << int(e) << " : " << cudaGetErrorString(e) << '\n';
@@ -45,6 +49,9 @@ inline void CUDACheckErr(cudaError_t e) {
    }
 }
 
+/*
+ * Check if the specified argument indicates an error with a CURand function
+ */
 inline void CUDACheckErr(curandStatus_t e) {
     if (e != CURAND_STATUS_SUCCESS) {
         std::cerr << "CURAND error: " << int(e) << "\n";

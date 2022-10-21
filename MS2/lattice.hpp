@@ -13,16 +13,13 @@ class Lattice {
     public:
         int*                lattice;
         int                 dimension;
-        std::pair<int,int>  get_random_coords();
-        unsigned long long  get_seed();
-        int                 get_cell(int, int);
-        void                randomise(std::string);
-        int                 get_dimension();
-        int                 calculate_energy(int, int);
-        void                switch_cell(int, int);
-        float               get_temperature();
-        void                write_to_bitmap(std::string);
-        void                dump_information(FILE*, long);
+        unsigned long long  get_seed() const;
+        int                 get_cell(int, int) const;
+        void                randomise(const std::string&);
+        int                 get_dimension() const;
+        float               get_temperature() const;
+        void                write_to_bitmap(const std::string&) const;
+        void                dump_information(FILE*, long) const;
                             Lattice(int, float);
                             ~Lattice();
     private:
