@@ -298,9 +298,10 @@ void print_progress(double time_between_draws, long i, long iterations,
  * Displays usage message to stderr 
  */
 void usage(char* prog_name) {
-    cerr << prog_name << " pattern_file [--[w]idth] " 
-            << "[--[h]eight] [--[r]efresh-rate]" 
+    cerr << prog_name << " pattern_file [--dimension (-n)]" 
+            << " [--[r]efresh-rate] [--thread-count (-c)]" 
             << " [--[g]raphical] [--[i]terations] [--[s]eed] [--[t]emperature]"
-            << " [--[o]utput <output_dir_name>]" << endl;
+            << " [--[o]utput <output_dir_name>]"
+            << " [--[d]ump-information]" << endl;
     exit(1);
 }

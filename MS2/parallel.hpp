@@ -24,14 +24,13 @@ const char* const short_opts = "dgn:r:i:s:t:o:c:";
 const option long_opts[] = {
     {"dimension", required_argument, 0, 'n'},
     {"update-rate", required_argument, 0, 'r'},
-    {"graphical", no_argument, 0, 'g'},
-    {"dump-information", no_argument, 0, 'd'},
     {"iterations", required_argument, 0, 'i'},
-    {"thread-count", required_argument, 0, 'c'},
-    {"lattice-divisions", required_argument, 0, 'l'},
     {"seed", required_argument, 0, 's'},
     {"temperature", required_argument, 0, 't'},
-    {"output", required_argument, 0, 'o'}
+    {"graphical", no_argument, 0, 'g'},
+    {"dump-information", no_argument, 0, 'd'},
+    {"output", required_argument, 0, 'o'},
+    {"thread-count", required_argument, 0, 'c'}
 };
 
 /* Prototypes */
