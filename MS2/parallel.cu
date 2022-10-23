@@ -112,13 +112,13 @@ int main(int argc, char** argv) {
             + to_string(temperature) + ".csv").c_str(), "w");
 
 
+    curandGenerator_t curand_generator;
     float* random_device;
     int* lattice_device;
-    curandGenerator_t curand_generator;
     size_t lattice_sz = lattice->get_dimension() * lattice->get_dimension();
     int block_count = floor(lattice_sz / thread_count) + 1;
-    cout << "Block count is " << block_count << endl;
 
+    cout << "Block count is " << block_count << endl;
     cout << "Attempting to allocate " 
          << (lattice_sz * sizeof(float) + lattice_sz * sizeof(int)) / 1000000 
          << "MB of VRAM...\n" << endl;
@@ -132,7 +132,7 @@ int main(int argc, char** argv) {
         cudaMemcpyHostToDevice));
 
     /* Initialise the CURand generator */
-    CUDACheckErr(curandCreateGenerator(&curand_generator, CURAND_RNG_PSEUDO_DEFAULT));
+    CUDACheckErr(curandCreateGenerator(&curand_generator, CURAND_RNG_PSEUDO_MTGP32));
     CUDACheckErr(curandSetPseudoRandomGeneratorSeed(curand_generator, lattice->get_seed()));
 
     /* Initialise timer */
@@ -191,6 +191,29 @@ int main(int argc, char** argv) {
          << " seconds\n" << COLOUR_RESET << endl;
 }
 
+__device__
+int neighbour_sum(int* lattice, int site_index, int lattice_dimension) {
+    int adjacent_sum = 0;
+
+    /* North neighbour, if in bounds */
+    adjacent_sum += (site_index >= lattice_dimension ? 
+        lattice[site_index - lattice_dimension] : 0);
+        
+    /* East neighbour, if in bounds */
+    adjacent_sum += (site_index + 1 < lattice_dimension * lattice_dimension ? 
+        lattice[site_index + 1] : 0);
+
+    /* South neighbour, if in bounds */
+    adjacent_sum += (site_index < lattice_dimension * (lattice_dimension - 1) ? 
+        lattice[site_index + lattice_dimension] : 0);
+
+    /* West neighbour, if in bounds */
+    adjacent_sum += (site_index - 1 >= 0 ? 
+        lattice[site_index - 1] : 0);
+
+    return adjacent_sum;
+}
+
 /*
  * Run on a CUDA capable device.
  *
@@ -214,7 +237,8 @@ void evaluate_disjoint_component(int* lattice, const float* random, int lattice_
     if (site_index >= lattice_dimension * lattice_dimension)
         return ;
 
-    /* For odd lattices, lattice sites (threads) with an index not 
+    /* 
+     * For odd lattices, lattice sites (threads) with an index not 
      * matching the parity are not considered 
      */
     if (lattice_dimension % 2 != 0 && site_index % 2 == parity)
@@ -244,27 +268,22 @@ void evaluate_disjoint_component(int* lattice, const float* random, int lattice_
             return;
     }
 
-    int adjacent_sum = 0;
+    int energy_0, energy_1, energy_change;
+    
+    energy_0 = -2 * 1 * lattice[site_index] * neighbour_sum(lattice, site_index, lattice_dimension);
+    /* Flip the spin */
+    lattice[site_index] *= -1;
+    
+    energy_1 = -2 * 1 * lattice[site_index] * neighbour_sum(lattice, site_index, lattice_dimension);
 
-    /* North neighbour, if in bounds */
-    adjacent_sum += (site_index >= lattice_dimension ? 
-        lattice[site_index - lattice_dimension] : 0);
-        
-    /* East neighbour, if in bounds */
-    adjacent_sum += (site_index + 1 < lattice_dimension * lattice_dimension ? 
-        lattice[site_index + 1] : 0);
+    energy_change = energy_1 - energy_0;
 
-    /* South neighbour, if in bounds */
-    adjacent_sum += (site_index < lattice_dimension * (lattice_dimension - 1) ? 
-        lattice[site_index + lattice_dimension] : 0);
-
-    /* West neighbour, if in bounds */
-    adjacent_sum += (site_index - 1 >= 0 ? 
-        lattice[site_index - 1] : 0);
-
-    int energy = 2 * 1 * adjacent_sum * lattice[site_index];
-
-    if (energy < 0 || random[site_index] < exp(-1.0 * energy / temperature))
+    /*
+     * If Energy_change <= 0, we accept the spin flip performed above
+     * If Energy_change >  0, we accept the spin flip above if r <= exp(-energy_change/temperature)
+     * Otherwise, we revert the spin.
+     */
+    if (energy_change > 0 && random[site_index] > exp(-1.0 * energy_change / temperature))
         lattice[site_index] *= -1;
 }
 
@@ -294,7 +313,6 @@ void print_progress(double time_between_draws, long i, long iterations,
 }
 
 /*
- * TODO: update 
  * Displays usage message to stderr 
  */
 void usage(char* prog_name) {
