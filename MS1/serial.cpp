@@ -177,10 +177,20 @@ void metropolis(Lattice* lattice) {
     int i = point.first;
     int j = point.second;
 
-    int energy_change = lattice->calculate_energy(i, j);
-    
-    if (energy_change < 0 || rand_float_range(0,0.999999) < 
-            exp(-1 * energy_change / (lattice->get_temperature())))
+    int energy_0, energy_1, energy_change;
+
+    energy_0 = lattice->calculate_energy(i, j);
+    lattice->switch_cell(i, j);
+    energy_1 = lattice->calculate_energy(i, j);
+
+    energy_change = energy_1 - energy_0;
+
+    /*
+     * If Energy_change <= 0, we accept the spin flip performed above
+     * If Energy_change >  0, we accept the spin flip above if r <= exp(-energy_change/temperature)
+     * Otherwise, we revert the spin.
+     */
+    if (energy_change > 0 && rand_float_range(0,0.999999) > exp(-1.0 * energy_change / lattice->get_temperature()))
         lattice->switch_cell(i, j);
 }
 

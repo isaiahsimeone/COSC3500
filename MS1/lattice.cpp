@@ -106,7 +106,7 @@ void Lattice::dump_information(FILE* f, long iteration) {
  * Calculate the energy of the cell specified by the x,y coordinate pair
  */
 int Lattice::calculate_energy(int x, int y) {
-    return (2 * 1/*J*/ * get_cell(x, y)) * (get_cell(x + 1, y) 
+    return (-2 * 1/*J*/ * get_cell(x, y)) * (get_cell(x + 1, y) 
         + get_cell(x - 1, y) + get_cell(x, y + 1) + get_cell(x, y - 1));
 }
 
