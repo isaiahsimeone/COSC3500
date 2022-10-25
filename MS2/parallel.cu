@@ -246,7 +246,7 @@ void evaluate_disjoint_component(int* lattice, const float* random, int lattice_
 
     /*
      * If the dimension of the lattice is even, then the disjoint sets of lattice sites
-     * will overlap. To resolve this, 
+     * will overlap.
      */
     if (lattice_dimension % 2 == 0) {
         int row = site_index / lattice_dimension;
