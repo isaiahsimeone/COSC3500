@@ -1,7 +1,7 @@
 CXX?=g++
 NVCC?=nvcc
 CXXFLAGS?=-std=c++11 -Wall -pedantic -g
-NVFLAGS?= --gpu-architecture=sm_35 -Wno-deprecated-gpu-targets -lcurand -g
+NVFLAGS?= --gpu-architecture=sm_35 -Wno-deprecated-gpu-targets -lcurand -g -use_fast_math
 LD_LIBRARY_PATH?=/usr/local/lib # libcurand.so.10
 
 OPTIMISATION_LEVEL=-O3
