@@ -132,7 +132,7 @@ int main(int argc, char** argv) {
         cudaMemcpyHostToDevice));
 
     /* Initialise the CURand generator */
-    CUDACheckErr(curandCreateGenerator(&curand_generator, CURAND_RNG_PSEUDO_MTGP32));
+    CUDACheckErr(curandCreateGenerator(&curand_generator, CURAND_RNG_PSEUDO_DEFAULT));
     CUDACheckErr(curandSetPseudoRandomGeneratorSeed(curand_generator, lattice->get_seed()));
 
     /* Initialise timer */
