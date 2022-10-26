@@ -17,12 +17,12 @@ int main(int argc, char** argv) {
     float temperature = 1.5;
     /* Should the program produce images of the lattice? */
     bool graphical = false;
-    /* frequency that image of the lattice is captured (default every 1% of progress) */
-    long update_rate = iterations * 0.01;
+    /* frequency that image of the lattice is captured */
+    long update_rate = 100;
     /* Should the program write lattice statistics (e.g. average spin) ? */
     bool dump_information = false;
     /* Number of CUDA threads to use */
-    int thread_count = 128;
+    int thread_count = 64;
     /* Initial configuration of the lattice based on this seed */
     string seed = "COSC3500";
     /* The location to write images of the lattice */
