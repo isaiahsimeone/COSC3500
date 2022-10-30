@@ -85,7 +85,7 @@ void Lattice::randomise(std::string seed_str = "COSC3500") {
  * file.
  */
 void Lattice::dump_information(FILE* f, long iteration) {
-    double average_spin = 0;
+    long double average_spin = 0;
 
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
@@ -96,9 +96,9 @@ void Lattice::dump_information(FILE* f, long iteration) {
             }
         }
     }
-    average_spin /= width * height;
+    average_spin = average_spin / (width * height);
 
-    fprintf(f, "%ld,%lf\n", iteration, average_spin);
+    fprintf(f, "%ld, %Lf\n", iteration, average_spin);
 }
 
 
